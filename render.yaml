@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: drona-ai-chatbot
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "./start.sh"
+    plan: free
+    autoDeploy: true
+    region: singapore
