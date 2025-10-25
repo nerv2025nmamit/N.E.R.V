@@ -6,10 +6,7 @@ venv/
 __pycache__/
 *.pyc
 
-# Local database / Chroma data
-chroma_data/
-*.duckdb
-*.parquet
+
 
 # VS Code and system files
 .vscode/
