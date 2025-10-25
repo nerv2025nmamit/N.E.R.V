@@ -1,11 +1,17 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from google import genai
+from dotenv import load_dotenv
+from chromadb import PersistentClient
 import chromadb
 import requests
 import json
+import os
 
-# Initialize ChromaDB client
-from chromadb import PersistentClient
+# Load .env and Gemini API key
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 client = PersistentClient(path="./chroma_data")
 collection = client.get_collection(name="alumni_collection")
 
@@ -21,27 +27,24 @@ def query_chroma(user_query):
     context = " ".join(documents)
     return context
 
-def ask_gemma(context, query):
-    """Send prompt to local Ollama API (Gemma3)"""
+
+# initialize once (top-level)
+_GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # set this in your environment
+genai_client = genai.Client(api_key=_GEMINI_API_KEY)
+
+def ask_gemini(context, query, model="gemini-2.5-flash"):
+    """Send prompt to Google Gemini API and return text response."""
     prompt = f"Context: {context}\n\nQuestion: {query}\nAnswer:"
-
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={"model": "gemma3:latest", "prompt": prompt},
-        stream=True,
-    )
-
-    full_response = ""
-    for line in response.iter_lines():
-        if line:
-            data = json.loads(line.decode("utf-8"))
-            if "response" in data:
-                full_response += data["response"]
-    return full_response.strip()
+    
+    # Use the Python client to generate content (simple synchronous call)
+    resp = genai_client.models.generate_content(model=model, contents=prompt)
+    
+    # resp.text is the generated output according to official examples
+    return getattr(resp, "text", "") or str(resp)
 
 @app.post("/ask")
 async def ask(request: QueryRequest):
     """Main API endpoint for chatbot"""
     context = query_chroma(request.question)
-    answer = ask_gemma(context, request.question)
+    answer = ask_gemini(context, request.question)
     return {"question": request.question, "answer": answer}

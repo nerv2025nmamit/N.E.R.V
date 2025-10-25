@@ -1,8 +1,38 @@
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+# Ensure gRPC logs are silenced at runtime too
+os.environ["GRPC_VERBOSITY"] = os.getenv("GRPC_VERBOSITY", "NONE")
+os.environ["GRPC_TRACE"] = os.getenv("GRPC_TRACE", "none")
+
+
 import requests
 import json
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from google import generativeai as genai
+from dotenv import load_dotenv
 from chromadb import PersistentClient
 from sentence_transformers import SentenceTransformer
 
+# Load .env and Gemini API key
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Initialize FastAPI
+app = FastAPI(title="Drona AI Chatbot")
+
+# Enable CORS (so frontend can access API)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can restrict this later
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Connect to ChromaDB
 client = PersistentClient(path="./chroma_data")
@@ -26,29 +56,36 @@ def query_chroma(user_query):
     return context
 
 
-# Send query + context to Ollama (Gemma)
+# Load API key from .env
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-def ask_gemma(context, query):
-    """Send prompt to local Ollama API"""
-    prompt = f"Context:\n{context}\n\nQuestion:\n{query}\n\nAnswer:"
+def ask_gemini(context, query):
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={"model": "gemma3:latest", "prompt": prompt},
-        stream=True
-    )
+    model=genai.GenerativeModel("gemini-2.5-flash")
 
-    full_response = ""
-    for line in response.iter_lines():
-        if line:
-            data = json.loads(line.decode("utf-8"))
-            if "response" in data:
-                print(data["response"],end="",flush=True)
-            full_response += data["response"]
+    prompt = f"Context: {context}\n\nQuestion: {query}\nAnswer:"
+    """"You're Drona AI, Chatbot that responds to user query.
+    Use this context to answer the questions correctly.
+    If the user question is out of the given context then respond saying 
+    that their question is out of the context"""
+    resp = model.generate_content(prompt)
+    return getattr(resp, "text", "") or str(resp)
 
-    print()        
-    return full_response
+import threading
+import time
+import sys
 
+def show_thinking():
+    """Show a 'thinking...' animation while Gemini processes the query"""
+    symbols = ["⏳", "🤔", "🧠", "⌛"]
+    i = 0
+    while not stop_thinking:
+        sys.stdout.write(f"\r{symbols[i % len(symbols)]} Thinking... please wait.")
+        sys.stdout.flush()
+        time.sleep(0.5)
+        i += 1
+    sys.stdout.write("\r" + " " * 40 + "\r")  # clear line
 
 # Main chat loop
 if __name__ == "__main__":
@@ -62,7 +99,24 @@ if __name__ == "__main__":
             print("👋 Goodbye! Keep Learning and Exploring 🚀")
             break
 
+        # Start the thinking animation in a background thread
+        stop_thinking = False
+        t = threading.Thread(target=show_thinking)
+        t.start()
+
+        # Do the actual processing
         context = query_chroma(user_query)
-        reply = ask_gemma(context, user_query)
+        reply = ask_gemini(context, user_query)
+
+        # Stop the animation
+        stop_thinking = True
+        t.join()
+
         print("\nBot:", reply, "\n")
+
+
+
+
+        
+
 
