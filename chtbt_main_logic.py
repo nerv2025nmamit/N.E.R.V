@@ -8,9 +8,10 @@ load_dotenv()
 os.environ["GRPC_VERBOSITY"] = os.getenv("GRPC_VERBOSITY", "NONE")
 os.environ["GRPC_TRACE"] = os.getenv("GRPC_TRACE", "none")
 
-
+import chromadb
 import requests
 import json
+from chromadb.config import Settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from google import generativeai as genai
@@ -35,7 +36,10 @@ app.add_middleware(
 )
 
 # Connect to ChromaDB
-client = PersistentClient(path="./chroma_data")
+# Use a path on the mounted persistent volume
+PERSIST_DIR = os.getenv("./chroma_data", "/mnt/chroma_data")
+
+client = chromadb.Client(Settings(persist_directory=PERSIST_DIR))
 collection = client.get_or_create_collection(name="alumni_collection")
 
 # Load embedding model
@@ -113,10 +117,5 @@ if __name__ == "__main__":
         t.join()
 
         print("\nBot:", reply, "\n")
-
-
-
-
-        
 
 

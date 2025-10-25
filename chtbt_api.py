@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from google import generativeai as genai
 from dotenv import load_dotenv
 from chromadb import PersistentClient
+from chromadb.config import Settings
 import chromadb
 import requests
 import json
@@ -12,8 +13,10 @@ import os
 load_dotenv()
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-client = PersistentClient(path="./chroma_data")
-collection = client.get_collection(name="alumni_collection")
+PERSIST_DIR = os.getenv("./chroma_data", "/mnt/chroma_data")
+
+client = chromadb.Client(Settings(persist_directory=PERSIST_DIR))
+collection = client.get_or_create_collection(name="alumni_collection")
 
 app = FastAPI()
 
