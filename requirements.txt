@@ -3,4 +3,4 @@ uvicorn
 chromadb
 sentence-transformers
 PyPDF2
-google-genai
+google-generativeai

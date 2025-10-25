@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from google import genai
+from google import generativeai as genai
 from dotenv import load_dotenv
 from chromadb import PersistentClient
 import chromadb
@@ -10,7 +10,7 @@ import os
 
 # Load .env and Gemini API key
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 client = PersistentClient(path="./chroma_data")
 collection = client.get_collection(name="alumni_collection")
@@ -28,19 +28,23 @@ def query_chroma(user_query):
     return context
 
 
-# initialize once (top-level)
-_GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # set this in your environment
-genai_client = genai.Client(api_key=_GEMINI_API_KEY)
 
-def ask_gemini(context, query, model="gemini-2.5-flash"):
+_GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # set this in your environment
+genai.configure(api_key=_GEMINI_API_KEY)
+
+def ask_gemini(context, query, model_name="gemini-2.5-flash"):
     """Send prompt to Google Gemini API and return text response."""
     prompt = f"Context: {context}\n\nQuestion: {query}\nAnswer:"
     
-    # Use the Python client to generate content (simple synchronous call)
-    resp = genai_client.models.generate_content(model=model, contents=prompt)
+    # Create model instance
+    model = genai.GenerativeModel(model_name)
     
-    # resp.text is the generated output according to official examples
-    return getattr(resp, "text", "") or str(resp)
+    # Generate response
+    response = model.generate_content(prompt)
+    
+    # Return the text response safely
+    return getattr(response, "text", "") or str(response)
+
 
 @app.post("/ask")
 async def ask(request: QueryRequest):
@@ -48,3 +52,5 @@ async def ask(request: QueryRequest):
     context = query_chroma(request.question)
     answer = ask_gemini(context, request.question)
     return {"question": request.question, "answer": answer}
+
+print("running successfully")

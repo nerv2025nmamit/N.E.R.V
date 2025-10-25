@@ -20,7 +20,7 @@ from sentence_transformers import SentenceTransformer
 
 # Load .env and Gemini API key
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 # Initialize FastAPI
 app = FastAPI(title="Drona AI Chatbot")
