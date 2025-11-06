@@ -1,20 +1,30 @@
-from sentence_transformers import SentenceTransformer
+import os
 import chromadb
+import requests
+from io import BytesIO
 from PyPDF2 import PdfReader
-from chromadb import PersistentClient
+from sentence_transformers import SentenceTransformer
+from chromadb import HttpClient
+from dotenv import load_dotenv
 
-# Initialize embedding model
+load_dotenv()
+
+client = chromadb.CloudClient(
+  api_key=os.getenv("CHROMA_API_KEY"),
+  tenant="1c9ca09b-e3ee-4994-83ff-e3df2c6f9108",
+  database="RAG_Chatbot_1_nerv"
+)
+
+collection = client.get_or_create_collection("alumni_collection")
+
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Initialize Chroma client
-client = PersistentClient(path="./chroma_data")
+pdf_url = "https://raw.githubusercontent.com/gauravkumarp33/RAG-Chatbot-1-NERV/main/alumni%20data.pdf"
 
-# Create (or get) collection
-collection = client.get_or_create_collection(name="alumni_collection")
+response = requests.get(pdf_url)
+response.raise_for_status()
 
-# Load and extract text from PDF
-pdf_path = r"C:\Users\HP\.vscode\nerv_1\alumni data.pdf"
-reader = PdfReader(pdf_path)
+reader = PdfReader(BytesIO(response.content))
 
 text_data = []
 for page in reader.pages:
@@ -22,12 +32,9 @@ for page in reader.pages:
     if text:
         text_data.append(text.strip())
 
-# Compute embeddings
 embeddings = embedding_model.encode(text_data).tolist()
 
-# Add text and embeddings to ChromaDB
 for i, (chunk, emb) in enumerate(zip(text_data, embeddings)):
     collection.add(documents=[chunk], embeddings=[emb], ids=[str(i)])
 
-
-print(f"✅ Added {len(text_data)} PDF pages to Chroma DB successfully with embeddings!")
+print(f"✅ Successfully added {len(text_data)} PDF pages to Chroma Cloud!")
