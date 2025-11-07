@@ -12,5 +12,9 @@ services:
         sync: false
       - key: CHROMA_API_KEY
         sync: false
-      - key: CHROMA_HOST
-        value: "https://api.trychroma.com"
+      - key: CHROMA_TENANT
+        sync: false       
+      - key: CHROMA_DATABASE
+        value: "RAG_Chatbot_1_nerv"  
+      - key: CHROMA_COLLECTION
+        value: "alumni_collection"
