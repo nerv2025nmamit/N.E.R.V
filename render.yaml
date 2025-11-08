@@ -3,7 +3,7 @@ services:
     name: drona-ai-chatbot
     env: python
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "uvicorn chtbt_api:app --host 0.0.0.0 --port $PORT"
+    startCommand: "uvicorn chtbt_api:app --host 0.0.0.0 --port $PORT --workers 1"
     plan: free
     autoDeploy: true
     region: singapore
