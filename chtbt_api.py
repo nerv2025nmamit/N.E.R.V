@@ -3,13 +3,13 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-import chromadb
+from chromadb import HttpClient
 from sentence_transformers import SentenceTransformer
 from google import generativeai as genai
 
+# Load environment variables
 load_dotenv()
 
-# Load environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CHROMA_API_KEY = os.getenv("CHROMA_API_KEY")
 CHROMA_TENANT = os.getenv("CHROMA_TENANT")
@@ -22,10 +22,9 @@ if not all([GEMINI_API_KEY, CHROMA_API_KEY, CHROMA_TENANT]):
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Initialize FastAPI app
+# FastAPI setup
 app = FastAPI(title="Drona AI Chatbot API")
 
-# Allow frontend access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,53 +33,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Models
 class QueryRequest(BaseModel):
     question: str
     n_results: int = 2
 
+@app.get("/")
+async def root():
+    return {"message": "Drona AI Chatbot is running!"}
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-
-# Lazy global objects
+# Lazy resources
 client = None
 collection = None
 embedding_model = None
 
-
 def init_resources():
-    """Initialize Chroma and SentenceTransformer lazily."""
     global client, collection, embedding_model
-
     if client is None:
-        client = chromadb.CloudClient(
+        client = HttpClient(
+            host="https://api.trychroma.com",
             api_key=CHROMA_API_KEY,
             tenant=CHROMA_TENANT,
             database=CHROMA_DATABASE
         )
         collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
-
     if embedding_model is None:
-        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
+        embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
 
 def query_chroma(user_query: str, n_results: int = 2) -> dict:
     init_resources()
     emb_vector = embedding_model.encode([user_query])[0].tolist()
-
     results = collection.query(
         query_embeddings=[emb_vector],
         n_results=n_results,
         include=["documents", "metadatas", "distances"]
     )
-
     docs = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
-
     context_text = " ".join(docs) if docs else ""
     return {
         "context_text": context_text,
@@ -89,13 +82,16 @@ def query_chroma(user_query: str, n_results: int = 2) -> dict:
         "distances": distances
     }
 
-
-def ask_gemini(context: str, question: str, model_name="gemini-2.5-flash") -> str:
+def ask_gemini(context: str, question: str, model_name="gemini-2.0-flash"):
     prompt = f"Context: {context or '(no context)'}\n\nQuestion: {question}\nAnswer:"
     model = genai.GenerativeModel(model_name)
     resp = model.generate_content(prompt)
-    return getattr(resp, "text", "") or str(resp)
-
+    if hasattr(resp, "text"):
+        return resp.text
+    elif hasattr(resp, "candidates"):
+        return resp.candidates[0].content.parts[0].text
+    else:
+        return str(resp)
 
 @app.post("/ask")
 async def ask(req: QueryRequest):
@@ -112,3 +108,4 @@ async def ask(req: QueryRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

@@ -8,13 +8,11 @@ services:
     autoDeploy: true
     region: singapore
     envVars:
-      - key: GEMINI_API_KEY
+      GEMINI_API_KEY: 
         sync: false
-      - key: CHROMA_API_KEY
+      CHROMA_API_KEY:
         sync: false
-      - key: CHROMA_TENANT
-        sync: false       
-      - key: CHROMA_DATABASE
-        value: "RAG_Chatbot_1_nerv"  
-      - key: CHROMA_COLLECTION
-        value: "alumni_collection"
+      CHROMA_TENANT:
+        sync: false
+      CHROMA_DATABASE: "RAG_Chatbot_1_nerv"
+      CHROMA_COLLECTION: "alumni_collection"
