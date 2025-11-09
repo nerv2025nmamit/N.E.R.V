@@ -34,7 +34,8 @@ client = chromadb.CloudClient(
 
 collection = client.get_or_create_collection(name=COLLECTION_NAME)
 
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
+
 
 def query_chroma(user_query, n_results=2):
     """

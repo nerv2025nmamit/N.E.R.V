@@ -10,6 +10,7 @@ from google import generativeai as genai
 # Load environment variables
 load_dotenv()
 
+# Environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CHROMA_API_KEY = os.getenv("CHROMA_API_KEY")
 CHROMA_TENANT = os.getenv("CHROMA_TENANT")
@@ -17,7 +18,7 @@ CHROMA_DATABASE = "RAG_Chatbot_1_nerv"
 CHROMA_COLLECTION = "alumni_collection"
 
 if not all([GEMINI_API_KEY, CHROMA_API_KEY, CHROMA_TENANT]):
-    raise RuntimeError("Missing required environment variables for Gemini or Chroma")
+    raise RuntimeError("❌ Missing required environment variables for Gemini or Chroma.")
 
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
@@ -27,30 +28,32 @@ app = FastAPI(title="Drona AI Chatbot API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allow all for now — restrict later for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Pydantic model for request body
 class QueryRequest(BaseModel):
     question: str
     n_results: int = 2
 
 @app.get("/")
 async def root():
-    return {"message": "Drona AI Chatbot is running!"}
+    return {"message": "🤖 Drona AI Chatbot is running!"}
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-# Lazy resources
+# Initialize lazy resources
 client = None
 collection = None
 embedding_model = None
 
 def init_resources():
+    """Initialize Chroma client and embedding model (lazy load)."""
     global client, collection, embedding_model
     if client is None:
         client = HttpClient(
@@ -64,6 +67,7 @@ def init_resources():
         embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
 
 def query_chroma(user_query: str, n_results: int = 2) -> dict:
+    """Query Chroma Cloud for most relevant chunks."""
     init_resources()
     emb_vector = embedding_model.encode([user_query])[0].tolist()
     results = collection.query(
@@ -83,18 +87,33 @@ def query_chroma(user_query: str, n_results: int = 2) -> dict:
     }
 
 def ask_gemini(context: str, question: str, model_name="gemini-2.0-flash"):
-    prompt = f"Context: {context or '(no context)'}\n\nQuestion: {question}\nAnswer:"
+    """Ask Gemini with provided context."""
+    prompt = f"""
+You are Drona AI, a helpful assistant that answers based on alumni data.
+
+Context:
+{context or '(no context available)'}
+
+Question:
+{question}
+
+Answer helpfully and concisely:
+"""
     model = genai.GenerativeModel(model_name)
-    resp = model.generate_content(prompt)
-    if hasattr(resp, "text"):
-        return resp.text
-    elif hasattr(resp, "candidates"):
-        return resp.candidates[0].content.parts[0].text
-    else:
-        return str(resp)
+    try:
+        resp = model.generate_content(prompt)
+        if hasattr(resp, "text"):
+            return resp.text
+        elif hasattr(resp, "candidates"):
+            return resp.candidates[0].content.parts[0].text
+        else:
+            return str(resp)
+    except Exception as e:
+        raise RuntimeError(f"Gemini API Error: {e}")
 
 @app.post("/ask")
 async def ask(req: QueryRequest):
+    """Main endpoint: query Chroma + ask Gemini."""
     try:
         chroma_res = query_chroma(req.question, req.n_results)
         context = chroma_res["context_text"]
@@ -108,4 +127,3 @@ async def ask(req: QueryRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
