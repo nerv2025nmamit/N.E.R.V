@@ -1,40 +1,36 @@
+# main.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-from chromadb import HttpClient
+import chromadb
 from sentence_transformers import SentenceTransformer
 from google import generativeai as genai
 
-# Load environment variables
 load_dotenv()
 
-# Environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CHROMA_API_KEY = os.getenv("CHROMA_API_KEY")
 CHROMA_TENANT = os.getenv("CHROMA_TENANT")
-CHROMA_DATABASE = "RAG_Chatbot_1_nerv"
-CHROMA_COLLECTION = "alumni_collection"
+CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "RAG_Chatbot_1_nerv")
+CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "alumni_collection")
 
 if not all([GEMINI_API_KEY, CHROMA_API_KEY, CHROMA_TENANT]):
     raise RuntimeError("❌ Missing required environment variables for Gemini or Chroma.")
 
-# Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
-# FastAPI setup
 app = FastAPI(title="Drona AI Chatbot API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for now — restrict later for security
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Pydantic model for request body
 class QueryRequest(BaseModel):
     question: str
     n_results: int = 2
@@ -47,7 +43,7 @@ async def root():
 async def health():
     return {"status": "ok"}
 
-# Initialize lazy resources
+
 client = None
 collection = None
 embedding_model = None
@@ -56,13 +52,17 @@ def init_resources():
     """Initialize Chroma client and embedding model (lazy load)."""
     global client, collection, embedding_model
     if client is None:
-        client = HttpClient(
-            host="https://api.trychroma.com",
-            api_key=CHROMA_API_KEY,
+        headers = {
+            "Authorization": f"Bearer {CHROMA_API_KEY}"
+        }
+        client = chromadb.HttpClient(
+            "https://api.trychroma.com",  
+            headers=headers,               
             tenant=CHROMA_TENANT,
             database=CHROMA_DATABASE
         )
         collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
+
     if embedding_model is None:
         embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
 
@@ -75,9 +75,9 @@ def query_chroma(user_query: str, n_results: int = 2) -> dict:
         n_results=n_results,
         include=["documents", "metadatas", "distances"]
     )
-    docs = results.get("documents", [[]])[0]
-    metadatas = results.get("metadatas", [[]])[0]
-    distances = results.get("distances", [[]])[0]
+    docs = results.get("documents", [[]])[0] if isinstance(results.get("documents"), list) else []
+    metadatas = results.get("metadatas", [[]])[0] if isinstance(results.get("metadatas"), list) else []
+    distances = results.get("distances", [[]])[0] if isinstance(results.get("distances"), list) else []
     context_text = " ".join(docs) if docs else ""
     return {
         "context_text": context_text,
@@ -99,15 +99,23 @@ Question:
 
 Answer helpfully and concisely:
 """
-    model = genai.GenerativeModel(model_name)
     try:
+        model = genai.GenerativeModel(model_name)
         resp = model.generate_content(prompt)
-        if hasattr(resp, "text"):
+        if hasattr(resp, "text") and resp.text:
             return resp.text
-        elif hasattr(resp, "candidates"):
-            return resp.candidates[0].content.parts[0].text
-        else:
-            return str(resp)
+        if hasattr(resp, "candidates") and resp.candidates:
+            first = resp.candidates[0]
+            if hasattr(first, "content"):
+                try:
+                    return first.content[0].text
+                except Exception:
+                    try:
+                        return first.content
+                    except Exception:
+                        pass
+            return str(first)
+        return str(resp)
     except Exception as e:
         raise RuntimeError(f"Gemini API Error: {e}")
 
@@ -126,4 +134,5 @@ async def ask(req: QueryRequest):
             "distances": chroma_res["distances"]
         }
     except Exception as e:
+        
         raise HTTPException(status_code=500, detail=str(e))
