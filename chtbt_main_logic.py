@@ -28,7 +28,8 @@ COLLECTION_NAME = "alumni_collection"
 
 client = chromadb.CloudClient(
     api_key=CHROMA_API_KEY,
-    tenant=CHROMA_TENANT
+    tenant=CHROMA_TENANT,
+    database=CHROMA_DATABASE
 )
 
 collection = client.get_or_create_collection(name=COLLECTION_NAME)

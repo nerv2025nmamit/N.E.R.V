@@ -55,12 +55,12 @@ def init_resources():
         headers = {
             "Authorization": f"Bearer {CHROMA_API_KEY}"
         }
-        client = chromadb.HttpClient(
-            "https://api.trychroma.com",  
-            headers=headers,               
-            tenant=CHROMA_TENANT,
-            database=CHROMA_DATABASE
-        )
+        client = chromadb.CloudClient(
+        api_key=os.getenv("CHROMA_API_KEY"),
+        tenant=os.getenv("CHROMA-TENANT"),
+        database="RAG_Chatbot_1_nerv"
+    )
+
         collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
 
     if embedding_model is None:

@@ -12,7 +12,7 @@ load_dotenv()
 # Initialize Chroma Cloud client
 client = chromadb.CloudClient(
     api_key=os.getenv("CHROMA_API_KEY"),
-    tenant="1c9ca09b-e3ee-4994-83ff-e3df2c6f9108",
+    tenant=os.getenv("CHROMA-TENANT"),
     database="RAG_Chatbot_1_nerv"
 )
 
