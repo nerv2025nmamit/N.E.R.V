@@ -1,12 +1,13 @@
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 import chromadb
+import threading
 from sentence_transformers import SentenceTransformer
 from google import generativeai as genai
+
 
 load_dotenv()
 
@@ -35,49 +36,62 @@ class QueryRequest(BaseModel):
     question: str
     n_results: int = 2
 
+
 @app.get("/")
 async def root():
     return {"message": "🤖 Drona AI Chatbot is running!"}
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
 
+# --- Lazy Initialization ---
 client = None
 collection = None
 embedding_model = None
+_model_lock = threading.Lock()
 
-def init_resources():
-    """Initialize Chroma client and embedding model (lazy load)."""
-    global client, collection, embedding_model
+
+def get_embedding_model():
+    """Load SentenceTransformer model lazily to prevent Railway timeout."""
+    global embedding_model
+    with _model_lock:
+        if embedding_model is None:
+            embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
+    return embedding_model
+
+
+def init_chroma():
+    """Initialize Chroma Cloud client lazily."""
+    global client, collection
     if client is None:
-        headers = {
-            "Authorization": f"Bearer {CHROMA_API_KEY}"
-        }
         client = chromadb.CloudClient(
-        api_key=os.getenv("CHROMA_API_KEY"),
-        tenant=os.getenv("CHROMA_TENANT"),
-        database="RAG_Chatbot_1_nerv"
-    )
-
+            api_key=CHROMA_API_KEY,
+            tenant=CHROMA_TENANT,
+            database=CHROMA_DATABASE
+        )
         collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
+    return collection
 
-    if embedding_model is None:
-        embedding_model = SentenceTransformer("sentence-transformers/paraphrase-MiniLM-L3-v2")
 
 def query_chroma(user_query: str, n_results: int = 2) -> dict:
-    """Query Chroma Cloud for most relevant chunks."""
-    init_resources()
-    emb_vector = embedding_model.encode([user_query])[0].tolist()
+    """Query Chroma Cloud for the most relevant context."""
+    collection = init_chroma()
+    model = get_embedding_model()
+
+    emb_vector = model.encode([user_query])[0].tolist()
     results = collection.query(
         query_embeddings=[emb_vector],
         n_results=n_results,
         include=["documents", "metadatas", "distances"]
     )
-    docs = results.get("documents", [[]])[0] if isinstance(results.get("documents"), list) else []
-    metadatas = results.get("metadatas", [[]])[0] if isinstance(results.get("metadatas"), list) else []
-    distances = results.get("distances", [[]])[0] if isinstance(results.get("distances"), list) else []
+
+    docs = results.get("documents", [[]])[0] if results.get("documents") else []
+    metadatas = results.get("metadatas", [[]])[0] if results.get("metadatas") else []
+    distances = results.get("distances", [[]])[0] if results.get("distances") else []
+
     context_text = " ".join(docs) if docs else ""
     return {
         "context_text": context_text,
@@ -86,8 +100,9 @@ def query_chroma(user_query: str, n_results: int = 2) -> dict:
         "distances": distances
     }
 
+
 def ask_gemini(context: str, question: str, model_name="gemini-2.0-flash"):
-    """Ask Gemini with provided context."""
+    """Generate an answer from Gemini using retrieved context."""
     prompt = f"""
 You are Drona AI, a helpful assistant that answers based on alumni data.
 
@@ -104,24 +119,14 @@ Answer helpfully and concisely:
         resp = model.generate_content(prompt)
         if hasattr(resp, "text") and resp.text:
             return resp.text
-        if hasattr(resp, "candidates") and resp.candidates:
-            first = resp.candidates[0]
-            if hasattr(first, "content"):
-                try:
-                    return first.content[0].text
-                except Exception:
-                    try:
-                        return first.content
-                    except Exception:
-                        pass
-            return str(first)
         return str(resp)
     except Exception as e:
         raise RuntimeError(f"Gemini API Error: {e}")
 
+
 @app.post("/ask")
 async def ask(req: QueryRequest):
-    """Main endpoint: query Chroma + ask Gemini."""
+    """Main endpoint — query Chroma + ask Gemini."""
     try:
         chroma_res = query_chroma(req.question, req.n_results)
         context = chroma_res["context_text"]
@@ -134,8 +139,8 @@ async def ask(req: QueryRequest):
             "distances": chroma_res["distances"]
         }
     except Exception as e:
-        
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
