@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: drona-chatbot-api
+    env: python
+    plan: free
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: uvicorn nerv_1.chtbt_api:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CHROMA_API_KEY
+        sync: false
+      - key: CHROMA_TENANT
+        sync: false
+      - key: CHROMA_DATABASE
+        value: RAG_Chatbot_1_nerv
+      - key: CHROMA_COLLECTION
+        value: alumni_collection
