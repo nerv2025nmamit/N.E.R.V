@@ -57,7 +57,7 @@ def init_resources():
         }
         client = chromadb.CloudClient(
         api_key=os.getenv("CHROMA_API_KEY"),
-        tenant=os.getenv("CHROMA-TENANT"),
+        tenant=os.getenv("CHROMA_TENANT"),
         database="RAG_Chatbot_1_nerv"
     )
 
@@ -136,3 +136,7 @@ async def ask(req: QueryRequest):
     except Exception as e:
         
         raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
