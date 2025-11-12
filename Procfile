@@ -1,1 +1,1 @@
-web: uvicorn chtbt_api:app --host 0.0.0.0 --port $PORT
+web: uvicorn nerv_1.chtbt_api:app --host 0.0.0.0 --port $PORT --workers 1
