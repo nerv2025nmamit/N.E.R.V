@@ -16,7 +16,7 @@ import {
   Target,
   Edit,
   Compass,
-  Inbox, // --- NEW: Added Inbox icon
+  Inbox
 } from 'lucide-react';
 
 // --- Re-usable Hook (unchanged) ---
@@ -32,19 +32,16 @@ function useMediaQuery(query: string) {
   return matches;
 }
 
-// --- Navigation Items ---
 const navItems = [
   { href: '/portal', icon: Home, label: 'Home' },
   { href: '/portal/stroll', icon: Compass, label: 'Stroll' },
   { href: '/portal/wisdom-hub', icon: MessageSquare, label: 'Jnana Hub' },
-  // --- NEW: Added Inbox Link ---
   { href: '/portal/messages', icon: Inbox, label: 'Inbox' },
   { href: '/portal/chatbot', icon: Bot, label: 'Drona AI' },
   { href: '/portal/news', icon: Newspaper, label: 'Tech-ronicles' },
   { href: '/portal/profile', icon: User, label: 'My Profile' },
 ];
 
-// --- Fiery Arrow Logo (unchanged) ---
 const FieryArrowLogo = () => (
   <div className="flex flex-col items-center gap-2">
     <img
@@ -59,8 +56,6 @@ const FieryArrowLogo = () => (
   </div>
 );
 
-
-// --- Animation Variants (unchanged) ---
 const navListVariants = {
   open: {
     transition: { staggerChildren: 0.05, delayChildren: 0.2 },
@@ -75,13 +70,12 @@ const navItemVariants = {
   closed: { y: 30, opacity: 0, transition: { y: { stiffness: 1000 } } },
 };
 
-// --- Main Layout (unchanged) ---
 export default function PortalLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userName, setUserName] = useState('Seeker');
-  
+
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
@@ -134,12 +128,18 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* --- Sidebar --- */}
+      {/* --- Sidebar, fully responsive --- */}
       <motion.aside
         animate={isDesktop ? { x: '0%' } : { x: isSidebarOpen ? '0%' : '-100%' }}
         initial={{ x: isDesktop ? '0%' : '-100%' }}
         transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-        className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col gap-8 overflow-y-auto border-r border-amber-500/10 bg-slate-950/90 p-6 backdrop-blur-lg lg:static"
+        className="
+          fixed inset-y-0 left-0 z-50 flex flex-col gap-8
+          bg-slate-950/90 border-r border-amber-500/10 p-6
+          backdrop-blur-lg transition-all
+          w-4/5 max-w-xs lg:w-72 overflow-y-auto
+          lg:static lg:flex lg:w-72
+        "
       >
         <div className="flex items-center justify-between">
           <FieryArrowLogo />
@@ -152,12 +152,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             <X className="h-6 w-6" />
           </motion.button>
         </div>
-
         {/* Navigation Links */}
-        <motion.nav 
-          variants={navListVariants} 
-          initial="closed" 
-          animate="open" 
+        <motion.nav
+          variants={navListVariants}
+          initial="closed"
+          animate="open"
           className="flex-1"
         >
           <ul className="flex flex-col gap-2">
@@ -186,7 +185,6 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             })}
           </ul>
         </motion.nav>
-
         {/* User Info & Sign Out (unchanged) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -213,7 +211,6 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
               <Edit className="ml-auto h-4 w-4 text-slate-600 transition-all duration-300 group-hover:text-amber-400 group-hover:translate-x-1" />
             </div>
           </Link>
-
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -225,7 +222,6 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
           </motion.button>
         </motion.div>
       </motion.aside>
-
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto p-6 lg:p-10">
         {children}
