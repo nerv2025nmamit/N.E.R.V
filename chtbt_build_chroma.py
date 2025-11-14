@@ -1,4 +1,4 @@
-# chroma_build.py
+
 import os
 import requests
 from io import BytesIO
@@ -10,7 +10,6 @@ import time
 
 load_dotenv()
 
-# Configure
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 CHROMA_API_KEY = os.getenv("CHROMA_API_KEY")
@@ -31,10 +30,10 @@ collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
 
 def get_embedding(text: str):
     """Get embedding from Gemini embedding model."""
-    # Keep text reasonably sized — chunking should be done prior to calling this function for large docs.
+    
     embed_model = genai.GenerativeModel("models/text-embedding-004")
     resp = embed_model.embed_content(text)
-    # resp should contain an "embedding" key; adapt if your genai version differs
+   
     return resp.get("embedding")
 
 def extract_text_from_pdf_bytes(pdf_bytes: bytes):
@@ -65,7 +64,7 @@ def ingest_pdf_from_url(pdf_url: str):
     batch = []
     ids = []
     embeddings = []
-    # You can chunk pages further; here we upload page-wise
+    
     for i, chunk in enumerate(pages):
         emb = get_embedding(chunk)
         if emb is None:
@@ -73,10 +72,9 @@ def ingest_pdf_from_url(pdf_url: str):
         ids.append(f"page_{i}")
         batch.append(chunk)
         embeddings.append(emb)
-        # avoid very tight rate causing issues
+      
         time.sleep(0.2)
 
-    # Replace collection or add depending on your needs:
     collection.add(documents=batch, embeddings=embeddings, ids=ids)
     print(f"✅ Added {len(batch)} items to Chroma collection '{CHROMA_COLLECTION}'.")
 
