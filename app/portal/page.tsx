@@ -2,70 +2,232 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { Users, Bot, Newspaper, GitBranch } from 'lucide-react';
+import { Users, Bot, Newspaper, GitBranch, Sparkles, Target, Compass, MessageSquare } from 'lucide-react';
 
-// --- Custom Fiery Arrow Logo (for this page) ---
-const FieryArrowLogo = () => (
-  <motion.div
-    className="flex flex-col items-center gap-2"
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.1, duration: 0.5 }}
-  >
-    <svg
-      width="24"
-      height="40"
-      viewBox="0 0 24 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="text-amber-500 h-14 w-14" // Made logo larger
+interface Particle {
+  id: number;
+  x: string;
+  y: string;
+  duration: number;
+  delay: number;
+  size: number;
+  initialY?: number;
+}
+
+// --- Floating Golden Bubbles (FIXED for Hydration) ---
+const GoldenBubbles = () => {
+  const [bubbles, setBubbles] = useState<Particle[]>([]);
+  useEffect(() => {
+    const generatedBubbles = Array.from({ length: 12 }).map((_, i) => ({
+      id: i,
+      x: `${Math.random() * 100}%`,
+      y: `${Math.random() * 100}%`,
+      size: Math.random() * 16 + 8,
+      duration: Math.random() * 12 + 10,
+      delay: Math.random() * 5,
+      initialY: Math.random() * 200,
+    }));
+    setBubbles(generatedBubbles);
+  }, []);
+  return (
+    <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
+      {bubbles.map((bubble) => (
+        <motion.div
+          key={bubble.id}
+          className="absolute rounded-full bg-amber-300/20 blur-sm"
+          style={{
+            width: `${bubble.size}px`,
+            height: `${bubble.size}px`,
+            left: bubble.x,
+            top: `calc(${bubble.y} + ${bubble.initialY}px)`,
+          }}
+          animate={{
+            y: [`calc(${bubble.initialY}px)`, `calc(${bubble.initialY}px - 150px)`],
+            opacity: [0, 0.6, 0]
+          }}
+          transition={{
+            duration: bubble.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: bubble.delay,
+            repeatType: "loop"
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// --- Fiery Wisps Background Effect ---
+const FieryWisps = () => {
+  const [wisps, setWisps] = useState<Particle[]>([]);
+  useEffect(() => {
+    const generatedWisps = Array.from({ length: 15 }).map((_, i) => ({
+      id: i,
+      x: `${Math.random() * 100}%`,
+      y: `${100 + Math.random() * 20}%`,
+      size: Math.random() * 20 + 10,
+      duration: Math.random() * 10 + 10,
+      delay: Math.random() * 10,
+    }));
+    setWisps(generatedWisps);
+  }, []);
+  return (
+    <div className="absolute inset-0 overflow-hidden -z-20 pointer-events-none">
+      {wisps.map((wisp) => (
+        <motion.div
+          key={wisp.id}
+          className="absolute rounded-full bg-gradient-to-t from-orange-500/0 via-amber-400/30 to-yellow-300/0 blur-md"
+          style={{
+            width: `${wisp.size}px`,
+            height: `${wisp.size * 2}px`,
+            left: wisp.x,
+            top: wisp.y,
+          }}
+          animate={{
+            y: [`${100 + Math.random() * 20}%`, `${-50 - Math.random() * 20}%`],
+            opacity: [0, 0.3, 0.5, 0.3, 0],
+            scale: [0.8, 1.2, 0.8]
+          }}
+          transition={{
+            duration: wisp.duration,
+            repeat: Infinity,
+            ease: 'linear',
+            delay: wisp.delay,
+            repeatType: "loop"
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// --- FlameThrowerParticles (mild flame jets) ---
+const FlameThrowerParticles = () => {
+  const [flames, setFlames] = useState<Particle[]>([]);
+  useEffect(() => {
+    const generatedFlames = Array.from({ length: 10 }).map((_, i) => ({
+      id: i,
+      x: `${10 + Math.random() * 80}%`,
+      y: `100%`,
+      size: Math.random() * 32 + 28,
+      duration: Math.random() * 3 + 2.7,
+      delay: Math.random() * 3,
+    }));
+    setFlames(generatedFlames);
+  }, []);
+  return (
+    <div className="absolute bottom-0 left-0 w-full h-full -z-30 pointer-events-none">
+      {flames.map((flame) => (
+        <motion.div
+          key={flame.id}
+          className="absolute rounded-full"
+          style={{
+            width: `${flame.size}px`,
+            height: `${flame.size * 1.47}px`,
+            left: flame.x,
+            bottom: '0',
+            background: 'radial-gradient(circle at 60% 40%, #ffde85 0%, #ff8323 54%, #ffd84b00 90%)'
+          }}
+          animate={{
+            opacity: [0, 0.8, 0.6, 0],
+            y: [0, -120, -150],
+            scale: [1, 1.17, 1],
+            rotate: [0, (Math.random() * 18) - 9, 0], // Flicker
+          }}
+          transition={{
+            duration: flame.duration,
+            ease: 'easeInOut',
+            repeat: Infinity,
+            delay: flame.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// --- Arsenal Particles ---
+const ArsenalParticles = () => {
+  const [particles, setParticles] = useState<Particle[]>([]);
+  useEffect(() => {
+    const generatedParticles = Array.from({ length: 25 }).map((_, i) => ({
+      id: i,
+      x: `${Math.random() * 100}%`,
+      y: `${Math.random() * 100}%`,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 5 + 5,
+      delay: Math.random() * 5,
+    }));
+    setParticles(generatedParticles);
+  }, []);
+  return (
+    <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full bg-amber-400"
+          style={{
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            left: p.x,
+            top: p.y,
+          }}
+          animate={{
+            y: [0, -80],
+            opacity: [0, 0.8, 0]
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            delay: p.delay,
+            ease: 'linear',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+const FieryArrowLogo = () => {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-2"
+      initial={{ opacity: 0, y: -20, scale: 0.8 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: 0.1, duration: 1, ease: 'easeOut' }}
     >
-      <defs>
-        <filter id="fire-glow-page" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id="fire-gradient-page" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" stopColor="#FDE047" /> {/* yellow-300 */}
-          <stop offset="50%" stopColor="#F59E0B" /> {/* amber-500 */}
-          <stop offset="100%" stopColor="#D97706" /> {/* amber-600 */}
-        </linearGradient>
-      </defs>
-      <motion.path
-        d="M12 2C12 2 13 8 16 12C19 16 20 22 20 22C20 22 18 20 16 19C14 18 12 20 12 20V2Z"
-        fill="url(#fire-gradient-page)"
-        opacity="0.7"
-        filter="url(#fire-glow-page)"
-        initial={{ y: 5, opacity: 0.8 }}
-        animate={{ y: [0, -3, 0], opacity: [1, 0.7, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <path
-        d="M12 2L12 38M12 38L8 34M12 38L16 34"
-        stroke="url(#fire-gradient-page)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <motion.path
-        d="M12 2L12 38M12 38L8 34M12 38L16 34"
-        stroke="white"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        initial={{ opacity: 0.5 }}
-        animate={{ opacity: [0.5, 0.2, 0.5] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ filter: 'blur(1px)' }}
-      />
-    </svg>
-  </motion.div>
-);
+      <div className="flex items-center justify-center">
+        {imgError ? (
+          <div className="h-36 w-36 rounded-full bg-slate-800 border-4 border-amber-500 flex items-center justify-center">
+            <Target className="w-16 h-16 text-amber-500" />
+          </div>
+        ) : (
+          <motion.img
+            src="/image.jpg"
+            alt="Lakshya Archer Logo"
+            className="h-36 w-36 rounded-full object-cover border-4 border-amber-400 shadow-xl bg-slate-900"
+            onError={() => setImgError(true)}
+            initial={{ filter: 'drop-shadow(0 0 0px rgba(251,191,36,0))' }}
+            animate={{
+              filter: [
+                'drop-shadow(0 0 16px rgba(251,191,36,0.8))',
+                'drop-shadow(0 0 24px rgba(251,191,36,1))',
+                'drop-shadow(0 0 16px rgba(251,191,36,0.8))'
+              ]
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+      </div>
+      <div className="font-serif text-3xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600">
+        LAKSHYA
+      </div>
+    </motion.div>
+  );
+};
 
-// --- Feature Item Component (Restyled for Scroll) ---
 interface FeatureItemProps {
   icon: React.ElementType;
   title: string;
@@ -76,42 +238,33 @@ interface FeatureItemProps {
 const FeatureItem: React.FC<FeatureItemProps> = ({ icon: Icon, title, description, delay }) => (
   <motion.li
     className="flex items-start gap-4"
-    variants={{ // Animation variants for stagger
-      hidden: { opacity: 0, y: 20 },
-      visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay } }
+    variants={{
+      hidden: { opacity: 0, y: 30, scale: 0.9 },
+      visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: 'easeOut', delay } },
     }}
   >
-    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-amber-800/10 text-amber-900 flex-shrink-0">
-      <Icon className="h-5 w-5" />
+    <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 text-amber-300 flex-shrink-0 border border-amber-500 shadow-lg shadow-amber-500/10">
+      <Icon className="h-6 w-6" />
     </div>
     <div>
-      <h3 className="text-lg font-serif font-bold text-slate-900">{title}</h3>
-      <p className="text-slate-700">{description}</p>
+      <h3 className="text-xl font-serif font-bold text-amber-200">{title}</h3>
+      <p className="text-slate-300 text-base">{description}</p>
     </div>
   </motion.li>
 );
 
-// --- Stagger Animation for the List ---
 const listVariants: Variants = {
-  visible: {
-    transition: {
-      staggerChildren: 0.2, // Stagger each child by 0.2s
-    },
-  },
+  visible: { transition: { staggerChildren: 0.2 } },
   hidden: {},
 };
 
-
-// --- Main Portal Page ---
 export default function PortalPage() {
   const [userName, setUserName] = useState('Seeker');
-
-  // Get user name from local storage on client-side
   useEffect(() => {
     try {
       const user = localStorage.getItem('user');
       if (user) {
-        setUserName(JSON.parse(user).name.split(' ')[0] || 'Seeker'); // Get first name
+        setUserName(JSON.parse(user).name.split(' ')[0] || 'Seeker');
       }
     } catch (e) {
       console.error('Failed to parse user from localStorage', e);
@@ -119,94 +272,116 @@ export default function PortalPage() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="w-full"
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      transition={{ duration: 0.5 }} 
+      className="w-full relative"
     >
-      {/* --- Main Welcome Card (with new shimmer animation) --- */}
+      {/* Background Effects */}
+      <FieryWisps />
+      <GoldenBubbles />
+      <FlameThrowerParticles /> {/* NEW flame throwers */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="relative mb-12 flex flex-col items-center rounded-2xl border border-amber-500/10 bg-gradient-to-tr from-slate-900/50 to-slate-950/30 p-8 text-center overflow-hidden"
-      >
-        {/* Shimmer Effect */}
-        <motion.div 
-          className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-amber-300/10 to-transparent"
-          animate={{ x: ['-100%', '200%'] }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            repeatDelay: 2,
-            ease: 'linear'
-          }}
-        />
+        className="absolute inset-0 bg-gradient-radial from-orange-400/5 via-transparent to-transparent blur-3xl scale-150 -z-30 pointer-events-none"
+        animate={{ opacity: [0.1, 0.2, 0.1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      />
 
+      {/* Welcome Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="relative mb-12 flex flex-col items-center rounded-2xl border border-amber-500/20 bg-gradient-to-tr from-slate-900/70 to-slate-950/40 p-8 text-center overflow-hidden shadow-2xl"
+      >
+        <div className="absolute inset-0 -z-10 bg-gradient-radial from-amber-400/20 via-transparent to-transparent blur-3xl scale-125 animate-pulse-light"></div>
+        <motion.div
+          className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-amber-300/10 to-transparent pointer-events-none"
+          animate={{ x: ['-100%', '100%'] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+        />
         <FieryArrowLogo />
-        
-        <h1 className="mt-4 text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600 font-serif tracking-widest">
+        <h1 className="mt-4 text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 font-serif tracking-widest drop-shadow-lg">
           WELCOME TO LAKSHYA
         </h1>
-        
         <p className="mt-4 text-lg text-slate-300">
-          Welcome to Your Portal,{' '}
-          <span className="font-bold text-white">{userName}!</span> 👋
+          Welcome to Your Portal, <span className="font-bold text-white">{userName}!</span> 👋
         </p>
-
         <p className="mt-2 text-sm text-slate-400 font-serif italic">
           &quot;Karmanye Vadhikaraste Ma Phaleshu Kadachana&quot;
         </p>
       </motion.div>
 
-      {/* --- NEW: "Ancient Scroll" Section --- */}
+      {/* --- Arsenal Scroll --- */}
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.3 }}
-        className="relative p-8 md:p-12 rounded-lg border-2 border-amber-400/50 bg-gradient-to-b from-amber-50 via-amber-100 to-amber-50 shadow-xl shadow-amber-900/50"
+        transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
+        className="
+          relative p-10 md:p-14
+          rounded-3xl border border-amber-500/20 
+          bg-slate-900/70 backdrop-blur-md
+          shadow-2xl shadow-black/30
+          overflow-hidden
+          z-10
+        "
       >
-        {/* Subtle texture overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M0%200h20v20H0V0zm20%2020h20v20H20V20z%22%20fill%3D%22%2392400E%22%20fill-opacity%3D%220.02%22%20%2F%3E%3C%2Fsvg%3E')] opacity-50"></div>
-
+        <ArsenalParticles />
         <div className="relative z-10">
-          <h2 className="mb-8 text-center text-3xl font-bold text-slate-900 font-serif">
+          <h2 className="mb-8 text-center text-4xl font-bold text-amber-300 font-serif drop-shadow-md">
             Your Arsenal of Abilities
+            <Sparkles className="inline-block ml-2 text-yellow-300 h-8 w-8 animate-pulse-slow" />
           </h2>
-          <motion.ul 
-            className="space-y-6"
+          <motion.ul
+            className="space-y-8"
             variants={listVariants}
             initial="hidden"
             animate="visible"
           >
             <FeatureItem
-              icon={Users}
-              title="Interact with Alumni"
-              description="Connect with elders, read their sagas (stories), and find valuable guidance."
-              delay={0.4}
+              icon={Compass}
+              title="Stroll the Grounds"
+              description="Explore the profiles of all seekers and guides on the platform. Find mentors and peers."
+              delay={0.6}
+            />
+            <FeatureItem
+              icon={MessageSquare}
+              title="Visit the Wisdom Hub"
+              description="Read, post, and comment on the chronicles shared by the community."
+              delay={0.8}
             />
             <FeatureItem
               icon={Bot}
               title="Seek Divine Guidance"
-              description="Ask questions and receive personalized vyūhas (strategies) from Drona AI."
-              delay={0.6} // Increased delay for better stagger
-            />
-            <FeatureItem
-              icon={GitBranch}
-              title="Create Custom Roadmaps"
-              description="Use Drona AI to build step-by-step plans to conquer your career goals."
-              delay={0.8} // Increased delay
+              description="Confer with Drona AI to unravel complex challenges and receive personalized vyūhas (strategies)."
+              delay={1.0}
             />
             <FeatureItem
               icon={Newspaper}
-              title="Stay Updated on the Battlefield"
-              description="Be updated about the latest tech news, internships, and opportunities."
-              delay={1.0} // Increased delay
+              title="Monitor the Battlefield"
+              description="Stay acutely aware of the latest tech news, internships, and emerging opportunities."
+              delay={1.2}
             />
           </motion.ul>
         </div>
       </motion.div>
+      <style jsx global>{`
+        @keyframes pulse-light {
+          0%, 100% { opacity: 0.8; transform: scale(1.25); }
+          50% { opacity: 1; transform: scale(1.35); }
+        }
+        .animate-pulse-light {
+          animation: pulse-light 4s ease-in-out infinite;
+        }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 3s ease-in-out infinite;
+        }
+      `}</style>
     </motion.div>
   );
 }

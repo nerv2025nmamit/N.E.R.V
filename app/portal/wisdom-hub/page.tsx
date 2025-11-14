@@ -8,7 +8,6 @@ import {
   Search,
   Tag,
   Send,
-  User,
   Feather,
   Loader2
 } from 'lucide-react';
@@ -46,8 +45,8 @@ type Post = {
   timestamp: any;
   content: string;
   hashtags: string[];
-  likedBy: string[]; // List of UIDs who liked
-  comments: Comment[]; // We'll load this on demand
+  likedBy: string[];
+  comments: Comment[];
 };
 
 type UserProfile = {
@@ -56,10 +55,13 @@ type UserProfile = {
   profilePicUrl: string;
 };
 
+// Sanskrit slogan
+const SLOGAN = 'ज्ञानं परमं बलम्'; // "Wisdom is the supreme power"
+
 // --- Helper Function: Time Ago ---
 const timeAgo = (timestamp: any): string => {
   if (!timestamp) return 'just now';
-  const date = timestamp.toDate(); // Convert Firestore Timestamp to JS Date
+  const date = timestamp.toDate();
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
@@ -76,25 +78,31 @@ const timeAgo = (timestamp: any): string => {
   return Math.floor(seconds) + 's ago';
 };
 
-// --- Main Page Component ---
+// --- Custom Animation Classes ---
+const spinSlow = `
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+`;
+
 export default function WisdomHubPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
-  
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostHashtags, setNewPostHashtags] = useState('');
-  
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Comment state
+
   const [activeCommentBox, setActiveCommentBox] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState('');
-  
+
   // --- 1. Get Current User and their Profile ---
   useEffect(() => {
     const setupUser = async () => {
@@ -102,21 +110,26 @@ export default function WisdomHubPage() {
         const user = await ensureUserIsSignedIn();
         setCurrentUser(user);
 
-        // Fetch their profile to "stamp" new posts/comments
-        const profilePath = `/artifacts/${appId}/public/data/profiles/${user.uid}`;
-        const profileDocRef = doc(db, profilePath);
+        const profileDocRef = doc(
+          db,
+          'artifacts',
+          appId,
+          'public',
+          'data',
+          'profiles',
+          user.uid
+        );
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
           setUserProfile(docSnap.data() as UserProfile);
         } else {
-          console.log("User has no profile, using login data");
           const loginData = localStorage.getItem('user');
           const { name } = loginData ? JSON.parse(loginData) : { name: 'Anonymous' };
           setUserProfile({ name: name, username: 'unknown', profilePicUrl: '' });
         }
       } catch (e) {
-        console.error("Auth failed:", e);
+        console.error('Auth failed:', e);
       }
     };
     setupUser();
@@ -125,49 +138,71 @@ export default function WisdomHubPage() {
   // --- 2. Fetch All Posts in Real-Time ---
   useEffect(() => {
     setLoadingPosts(true);
-    const postsPath = `/artifacts/${appId}/public/data/wisdomHubPosts`;
-    const q = query(collection(db, postsPath), orderBy('timestamp', 'desc'));
+    const postsRef = collection(
+      db,
+      'artifacts',
+      appId,
+      'public',
+      'data',
+      'wisdomHubPosts'
+    );
+    const q = query(postsRef, orderBy('timestamp', 'desc'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postsList: Post[] = [];
-      snapshot.forEach(doc => {
-        postsList.push({ id: doc.id, ...doc.data() } as Post);
-      });
-      setPosts(postsList);
-      setLoadingPosts(false);
-    }, (error) => {
-      console.error("Error fetching posts:", error);
-      setLoadingPosts(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const postsList: Post[] = [];
+        snapshot.forEach((d) => {
+          postsList.push({ id: d.id, ...(d.data() as any) } as Post);
+        });
+        setPosts(postsList);
+        setLoadingPosts(false);
+      },
+      (error) => {
+        console.error('Error fetching posts:', error);
+        setLoadingPosts(false);
+      }
+    );
 
-    return () => unsubscribe(); // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
 
   // --- 3. Fetch Comments for Active Post ---
   useEffect(() => {
     if (!activeCommentBox) {
       setComments([]);
-      return; // No post selected, do nothing
+      return;
     }
 
     setLoadingComments(true);
-    const commentsPath = `/artifacts/${appId}/public/data/wisdomHubPosts/${activeCommentBox}/comments`;
-    const q = query(collection(db, commentsPath), orderBy('timestamp', 'asc'));
+    const commentsRef = collection(
+      db,
+      'artifacts',
+      appId,
+      'public',
+      'data',
+      'wisdomHubPosts',
+      activeCommentBox,
+      'comments'
+    );
+    const q = query(commentsRef, orderBy('timestamp', 'asc'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const commentsList: Comment[] = [];
-      snapshot.forEach(doc => {
-        commentsList.push({ id: doc.id, ...doc.data() } as Comment);
-      });
-      setComments(commentsList);
-      setLoadingComments(false);
-    }, (error) => {
-      console.error("Error fetching comments:", error);
-      setLoadingComments(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const commentsList: Comment[] = [];
+        snapshot.forEach((d) => commentsList.push({ id: d.id, ...(d.data() as any) } as Comment));
+        setComments(commentsList);
+        setLoadingComments(false);
+      },
+      (error) => {
+        console.error('Error fetching comments:', error);
+        setLoadingComments(false);
+      }
+    );
 
     return () => unsubscribe();
-  }, [activeCommentBox]); // Rerun whenever active post changes
+  }, [activeCommentBox]);
 
   // --- Handle Posting a New "Saga" ---
   const handlePostSubmit = async (e: React.FormEvent) => {
@@ -190,17 +225,24 @@ export default function WisdomHubPage() {
       timestamp: serverTimestamp(),
       content: newPostContent.trim(),
       hashtags,
-      likedBy: [], // Start with 0 likes
-      comments: [], // Comments will be a subcollection
+      likedBy: [],
+      comments: []
     };
 
     try {
-      const postsPath = `/artifacts/${appId}/public/data/wisdomHubPosts`;
-      await addDoc(collection(db, postsPath), newPost);
+      const postsRef = collection(
+        db,
+        'artifacts',
+        appId,
+        'public',
+        'data',
+        'wisdomHubPosts'
+      );
+      await addDoc(postsRef, newPost);
       setNewPostContent('');
       setNewPostHashtags('');
     } catch (error) {
-      console.error("Error adding post:", error);
+      console.error('Error adding post:', error);
     }
   };
 
@@ -208,25 +250,31 @@ export default function WisdomHubPage() {
   const handleLikePost = async (postId: string) => {
     if (!currentUser) return;
 
-    const postRef = doc(db, `/artifacts/${appId}/public/data/wisdomHubPosts/${postId}`);
-    const post = posts.find(p => p.id === postId);
-    
+    const postRef = doc(
+      db,
+      'artifacts',
+      appId,
+      'public',
+      'data',
+      'wisdomHubPosts',
+      postId
+    );
+    const post = posts.find((p) => p.id === postId);
+
     if (post) {
-      const alreadyLiked = post.likedBy.includes(currentUser.uid);
+      const alreadyLiked = (post.likedBy || []).includes(currentUser.uid);
       try {
         if (alreadyLiked) {
-          // Unlike
           await updateDoc(postRef, {
             likedBy: arrayRemove(currentUser.uid)
           });
         } else {
-          // Like
           await updateDoc(postRef, {
             likedBy: arrayUnion(currentUser.uid)
           });
         }
       } catch (error) {
-        console.error("Error liking post:", error);
+        console.error('Error liking post:', error);
       }
     }
   };
@@ -240,300 +288,339 @@ export default function WisdomHubPage() {
       authorName: userProfile.name,
       authorUsername: userProfile.username || 'unknown',
       text: newComment.trim(),
-      timestamp: serverTimestamp(),
+      timestamp: serverTimestamp()
     };
 
     try {
-      const commentsPath = `/artifacts/${appId}/public/data/wisdomHubPosts/${postId}/comments`;
-      await addDoc(collection(db, commentsPath), newCommentObj);
+      const commentsRef = collection(
+        db,
+        'artifacts',
+        appId,
+        'public',
+        'data',
+        'wisdomHubPosts',
+        postId,
+        'comments'
+      );
+      await addDoc(commentsRef, newCommentObj);
       setNewComment('');
     } catch (error) {
-      console.error("Error adding comment:", error);
+      console.error('Error adding comment:', error);
     }
   };
 
-  // --- Filter and Sort Posts (Memoized for performance) ---
+    // --- Filter and Sort Posts ---
   const filteredPosts = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
-    
+
     if (!lowerSearchTerm) {
-      return posts; // Already sorted by date
+      return posts;
     }
-    
+
     return posts.filter((post) => {
       const contentMatch = post.content.toLowerCase().includes(lowerSearchTerm);
-      const tagMatch = post.hashtags?.some((tag) =>
-        tag.toLowerCase().includes(lowerSearchTerm)
-      );
-      const authorMatch = post.authorName.toLowerCase().includes(lowerSearchTerm) || post.authorUsername.toLowerCase().includes(lowerSearchTerm);
+      const tagMatch = post.hashtags?.some((tag) => tag.toLowerCase().includes(lowerSearchTerm));
+      const authorMatch =
+        post.authorName.toLowerCase().includes(lowerSearchTerm) ||
+        post.authorUsername.toLowerCase().includes(lowerSearchTerm);
       return contentMatch || tagMatch || authorMatch;
     });
   }, [posts, searchTerm]);
-  
+
   const userCanPost = currentUser && userProfile;
 
   return (
     <motion.div
-      className="max-w-4xl mx-auto"
-      initial={{ opacity: 0, y: 20 }}
+      className="max-w-4xl mx-auto px-4 sm:px-6 relative"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      {/* --- Header --- */}
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600">
-          Wisdom Hub
+      {/* Krishna aura background */}
+      <div className="absolute inset-0 -z-20 bg-gradient-to-tr from-emerald-500/10 via-indigo-500/10 to-amber-400/10 blur-3xl animate-pulse"></div>
+
+      {/* Header */}
+      <div className="text-center mb-10 relative">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400/10 via-indigo-400/10 to-amber-300/10 blur-2xl rounded-full animate-pulse"></div>
+        <h1 className="text-5xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-teal-300 to-amber-300">
+          Jnana Hub 🦚
         </h1>
-        <p className="text-lg text-slate-400 mt-2 max-w-lg mx-auto">
+        <p className="mt-2 text-slate-300 italic">
+          {SLOGAN} — <span className="text-amber-200">ज्ञानं परम् बलम्</span>
+        </p>
+        <p className="mt-3 text-slate-400 max-w-xl mx-auto">
           The path they have walked before. Now, they come together for your guidance.
         </p>
       </div>
 
-      {/* --- New Post Form --- */}
+      {/* New Post Form */}
       <form
         onSubmit={handlePostSubmit}
-        className="mb-12 p-6 bg-slate-900/50 border border-amber-500/10 rounded-2xl shadow-xl shadow-black/20"
+        className="mb-10 p-6 bg-gradient-to-br from-indigo-900/40 via-teal-900/20 to-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md relative"
       >
-        <h2 className="text-2xl font-serif font-bold text-white mb-4 flex items-center gap-3">
-          <Feather className="text-amber-400" />
-          Share Your Wisdom
-        </h2>
-        
-        <textarea
-          placeholder={
-            userCanPost
-              ? `Share your wisdom, ${userProfile.name}...`
-              : 'Create your profile to share wisdom...'
-          }
-          value={newPostContent}
-          onChange={(e) => setNewPostContent(e.target.value)}
-          rows={4}
-          className="w-full p-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
-          disabled={!userCanPost}
-        />
-        
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <div className="relative flex-1">
-            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500/60" />
-            <input
-              type="text"
-              placeholder="Tag your post (e.g., #strategy #google)"
-              value={newPostHashtags}
-              onChange={(e) => setNewPostHashtags(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+        {/* subtle feather glare */}
+        <div className="absolute inset-0 -z-10 bg-gradient-radial from-emerald-400/10 via-transparent to-transparent blur-2xl"></div>
+
+        <div className="flex items-start gap-4">
+          <div className="flex-1">
+            <label className="flex items-center gap-3 mb-3">
+              <Feather className="w-5 h-5 text-emerald-400 animate-spin-slow" />
+              <span className="text-sm text-slate-300 font-medium">Share Your Wisdom</span>
+            </label>
+            <textarea
+              placeholder={
+                userCanPost
+                  ? `Share your wisdom, ${userProfile?.name}...`
+                  : 'Create your profile to share wisdom...'
+              }
+              value={newPostContent}
+              onChange={(e) => setNewPostContent(e.target.value)}
+              rows={4}
+              className="w-full p-4 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/30"
               disabled={!userCanPost}
             />
+
+            <div className="mt-3 flex gap-3 items-center">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300/80" />
+                <input
+                  type="text"
+                  placeholder="Tag your post (e.g., #strategy #google)"
+                  value={newPostHashtags}
+                  onChange={(e) => setNewPostHashtags(e.target.value)}
+                  className="w-full pl-10 py-2 pr-3 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
+                  disabled={!userCanPost}
+                />
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                className="px-5 py-2 bg-gradient-to-r from-emerald-400 to-amber-300 text-slate-900 font-semibold rounded-lg shadow-md disabled:opacity-50"
+                disabled={!newPostContent.trim() || !userCanPost}
+              >
+                Post
+              </motion.button>
+            </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold rounded-lg shadow-lg shadow-amber-500/20 transition-all duration-300 ease-in-out hover:shadow-xl hover:shadow-amber-500/40 group flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!newPostContent.trim() || !userCanPost}
-          >
-            Post Wisdom
-            <Send className="w-5 h-5 ml-2" />
-          </motion.button>
+
+          <div className="w-20 flex flex-col items-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-teal-300 flex items-center justify-center text-slate-900 font-bold shadow-inner">
+              {userProfile?.name?.charAt(0) || 'U'}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">{userProfile?.username || 'unknown'}</p>
+          </div>
         </div>
       </form>
 
-      {/* --- Search Bar & Feed Header --- */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-serif font-bold text-white mb-4">
-          Community Chronicles
-        </h2>
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500/60" />
+      {/* Search + header */}
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-3xl font-serif font-bold text-white">Community Chronicles</h2>
+        <div className="relative w-1/3 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-300" />
           <input
-            type="text"
-            placeholder="Search chronicles, @users, or #tags..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+            placeholder="Search @users or #tags..."
+            className="w-full pl-10 pr-3 py-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
           />
         </div>
       </div>
 
-      {/* --- Post Feed --- */}
+      {/* Post Feed */}
       <div className="space-y-6">
         <AnimatePresence>
           {loadingPosts ? (
-             <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
-             </div>
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-12 h-12 text-amber-300 animate-spin" />
+            </div>
           ) : filteredPosts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center p-10 bg-slate-900/50 border-2 border-dashed border-slate-700 rounded-2xl"
+              className="text-center p-10 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl"
             >
               <h3 className="text-xl font-semibold text-white">The Hub is Empty</h3>
               <p className="text-slate-400 mt-2">
                 {searchTerm
-                  ? 'No wisdom matches your search. Broaden your query.'
+                  ? 'No wisdom matches your search.'
                   : 'Be the first to share your wisdom and guide others!'}
               </p>
             </motion.div>
           ) : (
             filteredPosts.map((post) => {
-              const userHasLiked = currentUser && post.likedBy.includes(currentUser.uid);
+              const userHasLiked =
+                currentUser && (post.likedBy || []).includes(currentUser.uid);
               return (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="bg-slate-900/50 border border-slate-800 rounded-2xl shadow-lg overflow-hidden"
-              >
-                {/* Post Header */}
-                <div className="p-5 border-b border-slate-800 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={post.authorProfilePic || 'https://placehold.co/80x80/1e293b/eab308?text=PIC'}
-                      alt={post.authorName}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/80x80/1e293b/eab308?text=PIC' }}
-                    />
-                    <div>
-                      <h4 className="text-sm font-bold text-white">
-                        {post.authorName}
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        @{post.authorUsername} • {timeAgo(post.timestamp)}
-                      </p>
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.35 }}
+                  className="relative bg-gradient-to-br from-indigo-900/30 via-teal-900/10 to-slate-900/30 border border-slate-800 rounded-2xl shadow-lg overflow-hidden"
+                >
+                  {/* Krishna feather glare */}
+                  <div className="absolute inset-0 bg-gradient-radial from-emerald-500/5 via-transparent to-transparent blur-2xl -z-10"></div>
+
+                  {/* Header */}
+                  <div className="p-4 border-b border-slate-800 flex items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={
+                          post.authorProfilePic ||
+                          'https://placehold.co/80x80/0f172a/ffd166?text=PIC'
+                        }
+                        alt={post.authorName}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
+                      />
+                      <div>
+                        <h4 className="text-sm font-bold text-white">{post.authorName}</h4>
+                        <p className="text-xs text-slate-400">
+                          @{post.authorUsername} • {timeAgo(post.timestamp)}
+                        </p>
+                      </div>
+                    </div>
+                                        <div className="ml-auto text-amber-200 font-mono text-xs px-3 py-1 rounded bg-amber-900/10">
+                      #{post.hashtags?.[0] || 'wisdom'}
                     </div>
                   </div>
-                </div>
 
-                {/* Post Content */}
-                <div className="p-5">
-                  <p className="text-slate-200 whitespace-pre-wrap">
-                    {post.content}
-                  </p>
-                  
-                  {/* Hashtags */}
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {post.hashtags?.map((tag) => ( 
-                      <button
-                        key={tag}
-                        onClick={() => setSearchTerm(tag)}
-                        className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-medium rounded-full transition-colors hover:bg-amber-500/20"
-                      >
-                        #{tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Post Footer: Likes & Comments */}
-                <div className="p-5 border-t border-slate-800 bg-slate-900/50 flex items-center gap-6">
-                  <motion.button
-                    whileTap={{ scale: 1.2 }}
-                    onClick={() => handleLikePost(post.id)}
-                    className={`flex items-center gap-2 transition-colors ${
-                      userHasLiked ? 'text-red-500' : 'text-slate-400 hover:text-red-500'
-                    }`}
-                    disabled={!currentUser}
-                  >
-                    <Heart className={`w-5 h-5 ${userHasLiked ? 'fill-current' : ''}`} />
-                    <span className="text-sm font-medium">{post.likedBy.length}</span>
-                  </motion.button>
-                  <button
-                    onClick={() =>
-                      setActiveCommentBox(
-                        activeCommentBox === post.id ? null : post.id
-                      )
-                    }
-                    className="flex items-center gap-2 text-slate-400 hover:text-amber-500 transition-colors"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                    <span className="text-sm font-medium">
-                      Comment
-                    </span>
-                  </button>
-                </div>
-
-                {/* Comment Section (Togglable) */}
-                <AnimatePresence>
-                  {activeCommentBox === post.id && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="bg-slate-900/30 overflow-hidden"
-                    >
-                      <div className="p-5 space-y-4">
-                        {/* New Comment Form */}
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleCommentSubmit(post.id);
-                          }}
-                          className="flex gap-3"
+                  {/* Content */}
+                  <div className="p-5">
+                    <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                      {post.content}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {post.hashtags?.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => setSearchTerm(tag)}
+                          className="px-3 py-1 bg-amber-300/10 text-amber-200 text-xs rounded-full hover:backdrop-brightness-110"
                         >
-                          <input
-                            type="text"
-                            placeholder={userCanPost ? "Add your comment..." : "Log in to comment"}
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            className="flex-1 p-2 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 text-sm outline-none focus:border-amber-500"
-                            disabled={!userCanPost}
-                          />
-                          <motion.button
-                            whileTap={{ scale: 1.1 }}
-                            type="submit"
-                            className="p-2 bg-amber-500 text-slate-900 rounded-lg"
-                            disabled={!newComment.trim() || !userCanPost}
-                          >
-                            <Send className="w-4 h-4" />
-                          </motion.button>
-                        </form>
-                        
-                        {/* Loading Comments */}
-                        {loadingComments && (
-                           <div className="flex items-center justify-center p-4">
-                              <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
-                           </div>
-                        )}
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                        {/* Existing Comments */}
-                        {!loadingComments && comments.length === 0 && (
-                          <p className="text-sm text-slate-500 text-center">
-                            No comments on this post yet.
-                          </p>
-                        )}
-                        
-                        {!loadingComments && comments.length > 0 && (
-                          comments.map((comment) => (
-                              <div key={comment.id} className="flex gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-slate-200 text-xs font-bold flex-shrink-0">
-                                  {comment.authorName.charAt(0)}
+                  {/* Footer */}
+                  <div className="p-4 border-t border-slate-800 bg-slate-900/30 flex items-center gap-4">
+                    <motion.button
+                      whileTap={{ scale: 1.15 }}
+                      onClick={() => handleLikePost(post.id)}
+                      className={`flex items-center gap-2 ${
+                        userHasLiked
+                          ? 'text-red-500'
+                          : 'text-slate-300 hover:text-amber-300'
+                      }`}
+                      disabled={!currentUser}
+                    >
+                      <Heart className="w-5 h-5" />
+                      <span className="text-sm font-medium">
+                        {(post.likedBy || []).length}
+                      </span>
+                    </motion.button>
+
+                    <button
+                      onClick={() =>
+                        setActiveCommentBox(
+                          activeCommentBox === post.id ? null : post.id
+                        )
+                      }
+                      className="flex items-center gap-2 text-slate-300 hover:text-amber-300"
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      <span className="text-sm font-medium">Comment</span>
+                    </button>
+
+                    <div className="ml-auto text-xs text-slate-400">
+                      {post.authorName !== userProfile?.name ? '' : 'Your post'}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  <AnimatePresence>
+                    {activeCommentBox === post.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-slate-900/20 p-4"
+                      >
+                        <div className="space-y-3">
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleCommentSubmit(post.id);
+                            }}
+                            className="flex gap-2"
+                          >
+                            <input
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              placeholder={
+                                userCanPost
+                                  ? 'Add your comment...'
+                                  : 'Log in to comment'
+                              }
+                              className="flex-1 p-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200"
+                              disabled={!userCanPost}
+                            />
+                            <motion.button
+                              whileTap={{ scale: 1.05 }}
+                              className="px-3 py-2 bg-amber-300 text-slate-900 rounded-md"
+                              disabled={!newComment.trim() || !userCanPost}
+                            >
+                              <Send className="w-4 h-4" />
+                            </motion.button>
+                          </form>
+
+                          {loadingComments ? (
+                            <div className="flex items-center justify-center p-4">
+                              <Loader2 className="w-5 h-5 text-amber-300 animate-spin" />
+                            </div>
+                          ) : comments.length === 0 ? (
+                            <p className="text-sm text-slate-400">
+                              No comments yet.
+                            </p>
+                          ) : (
+                            comments.map((c) => (
+                              <div
+                                key={c.id}
+                                className="flex gap-3 items-start"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-200">
+                                  {c.authorName.charAt(0)}
                                 </div>
-                                <div className="bg-slate-800/50 p-3 rounded-lg w-full">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-white">
-                                      {comment.authorName}
-                                    </span>
-                                    <span className="text-xs text-slate-500">
-                                      • @{comment.authorUsername} • {timeAgo(comment.timestamp)}
-                                    </span>
+                                <div className="bg-slate-800/40 p-3 rounded-md w-full">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div className="text-sm font-semibold text-white">
+                                        {c.authorName}
+                                      </div>
+                                      <div className="text-xs text-slate-400">
+                                        @{c.authorUsername} •{' '}
+                                        {timeAgo(c.timestamp)}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <p className="text-sm text-slate-300">
-                                    {comment.text}
+                                  <p className="text-sm text-slate-300 mt-2">
+                                    {c.text}
                                   </p>
                                 </div>
                               </div>
                             ))
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-              )
-            }))}
-        </AnimatePresence> {/* <-- THIS IS THE FIXED TAG */}
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

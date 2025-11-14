@@ -4,20 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Loader2, MessageSquare } from 'lucide-react';
-import { db, appId, ensureUserIsSignedIn } from '../../../firebase'; 
-import { 
-  doc, 
-  collection, 
-  query, 
-  orderBy, 
-  onSnapshot, 
+import { db, appId, ensureUserIsSignedIn } from '../../../firebase';
+import {
+  doc,
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
   addDoc,
   serverTimestamp,
   getDoc,
-  setDoc // --- NEW: Import setDoc
+  setDoc,
 } from 'firebase/firestore';
 
-// --- Type Definitions (unchanged) ---
 interface ChatMessage {
   id: string;
   text: string;
@@ -31,25 +30,22 @@ interface UserProfile {
   profilePicUrl: string;
 }
 
-// --- Helper Function: Time Formatting (unchanged) ---
 const formatTime = (date: Date) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// --- Main Chat Component ---
 export default function PrivateChatPage() {
   const params = useParams();
   const chatId = params.chatId as string;
-  
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [currentUserId, setCurrentUserId] = useState('');
   const [recipient, setRecipient] = useState<UserProfile | null>(null);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // --- 1. Fetch Recipient Info and Listen for Messages (unchanged) ---
   useEffect(() => {
     const setupChat = async () => {
       try {
@@ -58,52 +54,102 @@ export default function PrivateChatPage() {
         const senderId = currentUser.uid;
         setCurrentUserId(senderId);
 
+        // ✅ FIXED: Correct Firestore path
+        const chatDocRef = doc(
+          db,
+          "artifacts",
+          appId,
+          "public",
+          "data",
+          "chats",
+          chatId
+        );
+
+        await setDoc(
+          chatDocRef,
+          {
+            participants: chatId.split('_'),
+            lastTimestamp: serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        // Get participant IDs
         const chatParticipants = chatId.split('_');
-        const recipientId = chatParticipants.find(id => id !== senderId);
+        const recipientId = chatParticipants.find((id) => id !== senderId);
+        if (!recipientId) throw new Error('Invalid chat participants.');
 
-        if (!recipientId) throw new Error("Invalid chat participants.");
+        // ✅ FIXED: Correct recipient profile path
+        const recipientDocRef = doc(
+          db,
+          "artifacts",
+          appId,
+          "public",
+          "data",
+          "profiles",
+          recipientId
+        );
 
-        const recipientProfilePath = `/artifacts/${appId}/public/data/profiles/${recipientId}`;
-        const recipientDocRef = doc(db, recipientProfilePath);
         const recipientSnap = await getDoc(recipientDocRef);
-        
+
         if (recipientSnap.exists()) {
           const data = recipientSnap.data() as UserProfile;
           setRecipient({
             name: data.name || data.username || 'Mentor',
             username: data.username || '',
-            profilePicUrl: data.profilePicUrl || 'https://placehold.co/80x80/1e293b/eab308?text=PIC',
+            profilePicUrl:
+              data.profilePicUrl ||
+              'https://placehold.co/80x80/1e293b/eab308?text=PIC',
           });
         } else {
-            setRecipient({ name: "Unknown Seeker", username: "unknown", profilePicUrl: 'https://placehold.co/80x80/1e293b/eab308?text=PIC' });
+          setRecipient({
+            name: 'Unknown Seeker',
+            username: 'unknown',
+            profilePicUrl:
+              'https://placehold.co/80x80/1e293b/eab308?text=PIC',
+          });
         }
 
-        const chatCollectionPath = `/artifacts/${appId}/public/data/chats/${chatId}/messages`;
-        const q = query(collection(db, chatCollectionPath), orderBy('timestamp', 'asc'));
+        // ✅ FIXED: Correct messages collection path
+        const messagesRef = collection(
+          db,
+          "artifacts",
+          appId,
+          "public",
+          "data",
+          "chats",
+          chatId,
+          "messages"
+        );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const msgs: ChatMessage[] = [];
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            msgs.push({
-              id: doc.id,
-              text: data.text,
-              senderId: data.senderId,
-              timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
+        const q = query(messagesRef, orderBy('timestamp', 'asc'));
+
+        const unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            const msgs: ChatMessage[] = [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              msgs.push({
+                id: doc.id,
+                text: data.text,
+                senderId: data.senderId,
+                timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
+              });
             });
-          });
-          setMessages(msgs);
-          setLoading(false);
-          scrollToBottom();
-        }, (error) => {
-            console.error("Error subscribing to messages:", error);
+            setMessages(msgs);
             setLoading(false);
-        });
+            scrollToBottom();
+          },
+          (error) => {
+            console.error('Error subscribing to messages:', error);
+            setLoading(false);
+          }
+        );
 
         return () => unsubscribe();
-
       } catch (error) {
-        console.error("Chat setup failed:", error);
+        console.error('Chat setup failed:', error);
         setLoading(false);
       }
     };
@@ -113,12 +159,10 @@ export default function PrivateChatPage() {
     }
   }, [chatId]);
 
-  // --- 2. Auto-scroll Function (unchanged) ---
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // --- 3. UPDATED: Send Message Handler ---
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim() === '' || !currentUserId) return;
@@ -126,28 +170,51 @@ export default function PrivateChatPage() {
     const trimmedMessage = newMessage.trim();
 
     try {
-      // 1. Add the new message to the 'messages' subcollection
-      const chatMessagesPath = `/artifacts/${appId}/public/data/chats/${chatId}/messages`;
-      await addDoc(collection(db, chatMessagesPath), {
+      // ✅ FIXED: Correct messages collection path
+      const messagesRef = collection(
+        db,
+        "artifacts",
+        appId,
+        "public",
+        "data",
+        "chats",
+        chatId,
+        "messages"
+      );
+
+      await addDoc(messagesRef, {
         text: trimmedMessage,
         senderId: currentUserId,
         timestamp: serverTimestamp(),
       });
 
-      // 2. --- NEW: Update the root chat document for the inbox ---
-      const chatDocRef = doc(db, `/artifacts/${appId}/public/data/chats/${chatId}`);
-      await setDoc(chatDocRef, {
-        lastMessage: trimmedMessage,
-        lastTimestamp: serverTimestamp(),
-      }, { merge: true }); // 'merge: true' updates without overwriting
+      // Update chat document
+      const chatDocRef = doc(
+        db,
+        "artifacts",
+        appId,
+        "public",
+        "data",
+        "chats",
+        chatId
+      );
+
+      await setDoc(
+        chatDocRef,
+        {
+          lastMessage: trimmedMessage,
+          lastTimestamp: serverTimestamp(),
+          participants: chatId.split('_'),
+        },
+        { merge: true }
+      );
 
       setNewMessage('');
       scrollToBottom();
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error('Error sending message:', error);
     }
   };
-
 
   if (loading) {
     return (
@@ -156,23 +223,21 @@ export default function PrivateChatPage() {
       </div>
     );
   }
-  
+
   const recipientName = recipient?.name || 'Fellow Seeker';
 
-  // --- Render logic (unchanged) ---
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col h-[85vh] bg-slate-900/50 rounded-2xl border border-slate-800 shadow-xl overflow-hidden"
     >
       {/* Chat Header */}
       <div className="flex items-center p-4 border-b border-amber-500/10 bg-slate-900/80 sticky top-0 z-10">
-        <img 
-          src={recipient?.profilePicUrl || 'https://placehold.co/40x40/1e293b/eab308?text=PIC'} 
+        <img
+          src={recipient?.profilePicUrl}
           alt={recipientName}
           className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-amber-500"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/40x40/1e293b/eab308?text=PIC' }}
         />
         <div>
           <h2 className="text-xl font-bold text-white font-serif">{recipientName}</h2>
@@ -192,7 +257,10 @@ export default function PrivateChatPage() {
           <AnimatePresence>
             {messages.map((msg, index) => {
               const isSender = msg.senderId === currentUserId;
-              const isNewDay = index === 0 || msg.timestamp.toDateString() !== messages[index - 1].timestamp.toDateString();
+              const isNewDay =
+                index === 0 ||
+                msg.timestamp.toDateString() !==
+                  messages[index - 1].timestamp.toDateString();
 
               return (
                 <React.Fragment key={msg.id}>
@@ -220,8 +288,12 @@ export default function PrivateChatPage() {
                           : 'bg-slate-800 text-white rounded-tl-none'
                       }`}
                     >
-                      <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</p>
-                      <span className={`text-xs mt-1 block ${isSender ? 'text-slate-900/70' : 'text-slate-500'} text-right`}>
+                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                      <span
+                        className={`text-xs mt-1 block ${
+                          isSender ? 'text-slate-900/70' : 'text-slate-500'
+                        } text-right`}
+                      >
                         {formatTime(msg.timestamp)}
                       </span>
                     </div>
@@ -235,49 +307,24 @@ export default function PrivateChatPage() {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-800 bg-slate-900/80 flex gap-3 sticky bottom-0">
-        <textarea
-          className="flex-1 resize-none p-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500"
-          placeholder={`Message ${recipientName.split(' ')[0]}...`}
+      <form
+        onSubmit={handleSendMessage}
+        className="flex items-center p-4 border-t border-amber-500/10 bg-slate-900/80"
+      >
+        <input
+          type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSendMessage(e);
-            }
-          }}
-          rows={1}
-          style={{ minHeight: '48px', maxHeight: '100px' }}
+          placeholder="Type your message..."
+          className="flex-1 px-4 py-2 rounded-full bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
         />
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <button
           type="submit"
-          disabled={!newMessage.trim()}
-          className="w-12 h-12 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold rounded-full shadow-lg shadow-amber-500/20 transition-all duration-300 ease-in-out hover:shadow-xl hover:shadow-amber-500/40 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-3 p-2 rounded-full bg-amber-500 hover:bg-amber-600 transition-colors"
         >
-          <Send className="w-5 h-5 -translate-x-px" />
-        </motion.button>
+          <Send className="w-5 h-5 text-slate-900" />
+        </button>
       </form>
-      
-      {/* Custom Scrollbar CSS (unchanged) */}
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #1e293b;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #475569;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #eab308;
-        }
-      `}</style>
     </motion.div>
   );
 }

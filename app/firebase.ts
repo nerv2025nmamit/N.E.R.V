@@ -1,10 +1,10 @@
 'use client';
 
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, User } from 'firebase/auth'; // Import User
+import { getAuth, signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// --- YOUR PERSONAL CONFIG (This is correct) ---
+// --- Firebase Config ---
 const firebaseConfig = {
   apiKey: "AIzaSyBuWpWEQQiT7pXJznxEkMFns0npDlmjaIw",
   authDomain: "lakshya-platform.firebaseapp.com",
@@ -15,47 +15,55 @@ const firebaseConfig = {
   measurementId: "G-48EH55B1VW"
 };
 
-// 2. Initialize Firebase
+// --- Initialize Firebase ---
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-// 3. Initialize and export services
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 4. --- THIS IS THE CRITICAL PATH FIX ---
-// This is the path you confirmed from your database
+// --- App ID for Firestore paths (if needed) ---
 const appId = 'default-app-id';
 
-// 5. --- NEW SIMPLIFIED SIGN-IN ---
-// This is the one, correct function.
+// --- Current UID (may be null at first) ---
+const currentUserId = auth.currentUser?.uid ?? null;
+
+// --- Ensure User Is Signed In ---
 const ensureUserIsSignedIn = (): Promise<User> => {
   return new Promise((resolve, reject) => {
-    // Check if user is already signed in
     if (auth.currentUser) {
+      console.log("✅ Already signed in as:", auth.currentUser.uid);
       return resolve(auth.currentUser);
     }
-    
-    // Listen for auth state change
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        unsubscribe(); // Stop listening
+        console.log("✅ Auth state changed. UID:", user.uid);
+        unsubscribe();
         resolve(user);
       }
     }, (error) => {
+      console.error("❌ Auth state error:", error);
       unsubscribe();
       reject(error);
     });
 
-    // Sign in anonymously
     (async () => {
       try {
         await signInAnonymously(auth);
       } catch (error) {
-        console.error("Firebase sign-in error:", error);
+        console.error("🔥 Firebase sign-in error:", error);
         reject(error);
       }
     })();
   });
 };
 
-export { db, auth, appId, ensureUserIsSignedIn };
+// --- Optional Debug Helper ---
+const debugAuth = () => {
+  if (auth.currentUser) {
+    console.log("🔍 Auth UID:", auth.currentUser.uid);
+  } else {
+    console.log("⚠️ No user signed in yet.");
+  }
+};
+
+export { db, auth, appId, currentUserId, ensureUserIsSignedIn, debugAuth };

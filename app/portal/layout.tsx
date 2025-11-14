@@ -36,7 +36,7 @@ function useMediaQuery(query: string) {
 const navItems = [
   { href: '/portal', icon: Home, label: 'Home' },
   { href: '/portal/stroll', icon: Compass, label: 'Stroll' },
-  { href: '/portal/wisdom-hub', icon: MessageSquare, label: 'Wisdom Hub' },
+  { href: '/portal/wisdom-hub', icon: MessageSquare, label: 'Jnana Hub' },
   // --- NEW: Added Inbox Link ---
   { href: '/portal/messages', icon: Inbox, label: 'Inbox' },
   { href: '/portal/chatbot', icon: Bot, label: 'Drona AI' },
@@ -46,67 +46,19 @@ const navItems = [
 
 // --- Fiery Arrow Logo (unchanged) ---
 const FieryArrowLogo = () => (
-  <motion.div
-    className="flex flex-col items-center gap-2"
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.1, duration: 0.5 }}
-  >
-    <svg
-      width="24"
-      height="40"
-      viewBox="0 0 24 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="text-amber-500"
-    >
-      <defs>
-        <filter id="fire-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id="fire-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
-          <stop offset="0%" stopColor="#FDE047" />
-          <stop offset="50%" stopColor="#F59E0B" />
-          <stop offset="100%" stopColor="#D97706" />
-        </linearGradient>
-      </defs>
-      <motion.path
-        d="M12 2C12 2 13 8 16 12C19 16 20 22 20 22C20 22 18 20 16 19C14 18 12 20 12 20V2Z"
-        fill="url(#fire-gradient)"
-        opacity="0.7"
-        filter="url(#fire-glow)"
-        initial={{ y: 5, opacity: 0.8 }}
-        animate={{ y: [0, -3, 0], opacity: [1, 0.7, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <path
-        d="M12 2L12 38M12 38L8 34M12 38L16 34"
-        stroke="url(#fire-gradient)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <motion.path
-        d="M12 2L12 38M12 38L8 34M12 38L16 34"
-        stroke="white"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        initial={{ opacity: 0.5 }}
-        animate={{ opacity: [0.5, 0.2, 0.5] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ filter: 'blur(1px)' }}
-      />
-    </svg>
+  <div className="flex flex-col items-center gap-2">
+    <img
+      src="/image.jpg"
+      alt="Lakshya Archer Logo"
+      className="h-16 w-16 object-contain rounded-full shadow-amber-300/40 shadow-lg border-2 border-amber-400"
+      style={{ background: "#18181b" }}
+    />
     <div className="font-serif text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600">
       LAKSHYA
     </div>
-  </motion.div>
+  </div>
 );
+
 
 // --- Animation Variants (unchanged) ---
 const navListVariants = {

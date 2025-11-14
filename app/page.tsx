@@ -10,12 +10,11 @@ import {
   Bot,
   ChevronDown,
   Sparkles,
-  Shield,
   ExternalLink,
 } from 'lucide-react';
-import Link from 'next/link'; // Import the Next.js Link component
+import Link from 'next/link';
 
-// --- Type Definitions for TypeScript ---
+// --- Type Definitions ---
 interface PortalCardProps {
   title: string;
   icon: ReactNode;
@@ -37,7 +36,7 @@ interface FeatureCardProps {
 interface Maker {
   name: string;
   role: string;
-  image: string; // URL to the image
+  image: string;
 }
 
 interface MakerCardProps {
@@ -46,7 +45,6 @@ interface MakerCardProps {
 }
 
 // --- Utility Components ---
-
 const SectionHeading = ({
   children,
   subtitle,
@@ -89,37 +87,37 @@ const SectionHeading = ({
   );
 };
 
-// --- Data for Makers ---
-// TODO: Replace with your actual team details
+// --- Makers ---
 const makers: Maker[] = [
   {
-    name: 'Devansh S',
-    role: 'Founder & Full-Stack Architect',
-    image: 'https://placehold.co/400x400/1e293b/eab308?text=DS',
+    name: 'SUCHAYA',
+    role: 'MEMBER',
+    image: 'https://placehold.co/400x400/1e293b/eab308?text=M1',
   },
   {
-    name: 'Team Member 2',
-    role: 'Frontend & UI/UX',
+    name: 'BHARGAV',
+    role: 'MEMBER',
     image: 'https://placehold.co/400x400/1e293b/eab308?text=M2',
   },
   {
-    name: 'Team Member 3',
-    role: 'Backend & AI Specialist',
+    name: 'GAURAV',
+    role: 'MEMBER',
     image: 'https://placehold.co/400x400/1e293b/eab308?text=M3',
+  },
+  {
+    name: 'DEVANG',
+    role: 'MEMBER',
+    image: 'https://placehold.co/400x400/1e293b/eab308?text=M4',
   },
 ];
 
-// --- Main App Component ---
-
+// --- Main Component ---
 export default function Home() {
   const [arrowShot, setArrowShot] = useState(false);
   const targetRef = useRef<HTMLDivElement>(null);
 
-  // Shoot arrow on load after a slight delay
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setArrowShot(true);
-    }, 1000);
+    const timer = setTimeout(() => setArrowShot(true), 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -129,25 +127,31 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-amber-500/30">
-      {/* Decorative Background Elements */}
+      {/* Decorative Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/20 rounded-full blur-[120px] opacity-50"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-900/20 rounded-full blur-[120px] opacity-40"></div>
       </div>
 
-      {/* --- Navigation --- */}
+      {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-3"
           >
-            <Target className="w-8 h-8 text-amber-500" />
+            {/* Logo image from public folder */}
+            <img
+              src="/image.jpg"
+              alt="Lakshya logo"
+              className="w-9 h-9 rounded-md object-cover"
+            />
             <span className="text-2xl font-bold tracking-wider text-white font-serif">
               LAKSHYA
             </span>
           </motion.div>
+
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-300">
             <a href="#features" className="hover:text-amber-400 transition-colors">
               Features
@@ -168,7 +172,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* --- Hero Section --- */}
+      {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex items-center justify-center overflow-hidden pt-20">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center w-full">
           <motion.div
@@ -209,45 +213,19 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Animated Bow & Target Graphic */}
+          {/* Animated Bow & Target Graphic — Arrow shoots to the RIGHT */}
           <div className="relative h-[500px] flex items-center justify-center">
-            {/* The Target */}
+            {/* Target on the RIGHT side */}
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 0.8, opacity: 0, x: 80 }}
+              animate={{ scale: 1, opacity: 1, x: 120 }}
               transition={{ duration: 1 }}
-              className="absolute"
+              className="absolute right-0"
             >
-              <svg
-                width="300"
-                height="300"
-                viewBox="0 0 100 100"
-                className="opacity-80"
-              >
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  stroke="#334155"
-                  strokeWidth="0.5"
-                  fill="none"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="35"
-                  stroke="#475569"
-                  strokeWidth="0.5"
-                  fill="none"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="25"
-                  stroke="#64748b"
-                  strokeWidth="1"
-                  fill="none"
-                />
+              <svg width="300" height="300" viewBox="0 0 100 100" className="opacity-80">
+                <circle cx="50" cy="50" r="45" stroke="#334155" strokeWidth="0.5" fill="none" />
+                <circle cx="50" cy="50" r="35" stroke="#475569" strokeWidth="0.5" fill="none" />
+                <circle cx="50" cy="50" r="25" stroke="#64748b" strokeWidth="1" fill="none" />
                 <circle
                   cx="50"
                   cy="50"
@@ -261,12 +239,12 @@ export default function Home() {
               </svg>
             </motion.div>
 
-            {/* The Bow */}
+            {/* Bow on the LEFT, concave towards right */}
             <motion.div
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ x: -150, opacity: 1 }}
+              initial={{ x: -140, opacity: 0 }}
+              animate={{ x: -50, opacity: 2}}
               transition={{ duration: 1, delay: 0.2 }}
-              className="absolute left-0 lg:-left-10 h-64 w-32 opacity-40 lg:opacity-100"
+              className="absolute left-0 lg:-left-10 h-64 w-32 opacity-60 lg:opacity-100"
             >
               <svg
                 viewBox="0 0 100 200"
@@ -274,53 +252,54 @@ export default function Home() {
                 fill="none"
                 strokeWidth="2"
               >
-                <path
-                  d="M 90 10 C 20 50, 20 150, 90 190"
-                  strokeLinecap="round"
-                />
+                {/* Bow limb curve opening towards the right */}
+                <path d="M 10 10 C 80 50, 80 150, 10 190" strokeLinecap="round" />
+                {/* Bow string on the left side */}
                 <motion.line
-                  x1="90"
+                  x1="10"
                   y1="10"
-                  x2="90"
+                  x2="10"
                   y2="190"
                   stroke="#eab308"
                   strokeWidth="1"
-                  initial={{ pathLength: 1, x2: 90 }}
-                  animate={arrowShot ? { pathLength: 1, x: -20 } : { pathLength: 1, x: 0 }} // Simplistic bow string pull approximation
+                  initial={{ x: 10 }}
+                  animate={arrowShot ? { x: 20 } : { x: 10 }} // subtle pull towards the arrow nock
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
                 />
               </svg>
             </motion.div>
 
-            {/* The Arrow */}
+            {/* Arrow starting near the bow, flying RIGHT towards the target */}
             <motion.div
-              initial={{ x: -220, opacity: 0 }}
+              initial={{ x: -160, opacity: 0 }}
               animate={
                 arrowShot
-                  ? { x: -15, opacity: [1, 1, 0] }
-                  : { x: -220, opacity: 1 }
+                  ? { x: 190, opacity: [1, 1, 0] }
+                  : { x: -160, opacity: 1 }
               }
               transition={{
-                duration: arrowShot ? 0.4 : 0,
+                duration: arrowShot ? 0.6 : 0,
                 ease: 'backIn',
-                opacity: { delay: 0.35, duration: 0.1 }, // disappear when it hits
+                opacity: { delay: 0.5, duration: 0.1 },
               }}
               className="absolute left-1/2 top-1/2"
               style={{ marginTop: '-1px', marginLeft: '-50px' }}
             >
-              <div className="w-[100px] h-[2px] bg-gradient-to-r from-transparent via-amber-300 to-amber-500 relative">
+              <div className="w-[220px] h-[2px] bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 relative">
+                {/* Arrow head pointing RIGHT */}
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[12px] border-l-amber-500"></div>
               </div>
             </motion.div>
 
-            {/* Hit Effect */}
+            {/* Hit Effect near the RIGHT target */}
             <AnimatePresence>
               {arrowShot && (
                 <motion.div
                   initial={{ scale: 0, opacity: 1 }}
                   animate={{ scale: 2, opacity: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6, ease: 'easeOut', delay: 0.4 }}
-                  className="absolute w-20 h-20 bg-amber-500/40 rounded-full blur-md"
+                  transition={{ duration: 0.6, ease: 'easeOut', delay: 0.5 }}
+                  className="absolute right-10 w-20 h-20 bg-amber-500/40 rounded-full blur-md"
                 />
               )}
             </AnimatePresence>
@@ -330,19 +309,14 @@ export default function Home() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{
-            delay: 2,
-            duration: 1,
-            repeat: Infinity,
-            repeatType: 'reverse',
-          }}
+          transition={{ delay: 2, duration: 1, repeat: Infinity, repeatType: 'reverse' }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 text-slate-500"
         >
           <ChevronDown className="w-6 h-6" />
         </motion.div>
       </section>
 
-      {/* --- Portals Section (CTA) --- */}
+      {/* Portals Section */}
       <section id="portals" ref={targetRef} className="relative z-10 py-32 bg-slate-900/50">
         <div className="max-w-6xl mx-auto px-6">
           <SectionHeading subtitle="Your journey begins here. Are you seeking guidance, or are you ready to give back?">
@@ -350,7 +324,6 @@ export default function Home() {
           </SectionHeading>
 
           <div className="max-w-xl mx-auto">
-            {/* This is the single, merged portal card */}
             <PortalCard
               title="Enter the Portal"
               icon={<Target className="w-12 h-12" />}
@@ -358,14 +331,14 @@ export default function Home() {
               cta="Login / Register"
               color="amber"
               delay={0.2}
-              href="/login" // This points to your unified login page
+              href="/login"
               isExternal={false}
             />
           </div>
         </div>
       </section>
 
-      {/* --- Features Section --- */}
+      {/* Features Section */}
       <section id="features" className="relative z-10 py-32">
         <div className="max-w-7xl mx-auto px-6">
           <SectionHeading subtitle="A complete arsenal for career success.">
@@ -387,7 +360,7 @@ export default function Home() {
             />
             <FeatureCard
               icon={<Bot className="w-8 h-8 text-emerald-400" />}
-              title="AI Career Sarthi"
+              title="DRONA.AI"
               description="Our advanced chatbot provides instant, personalized roadmaps to crack your dream companies."
               delay={0.5}
             />
@@ -395,7 +368,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- Mission Section ("About") --- */}
+      {/* Mission Section */}
       <section id="about" className="relative z-10 py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
           <motion.div
@@ -448,11 +421,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- Makers Section --- */}
-      <section
-        id="team"
-        className="relative z-10 py-32 bg-slate-900/50 border-t border-slate-800/50"
-      >
+      {/* Makers Section */}
+      <section id="team" className="relative z-10 py-32 bg-slate-900/50 border-t border-slate-800/50">
         <div className="max-w-6xl mx-auto px-6">
           <SectionHeading>The Architects</SectionHeading>
           <div className="grid md:grid-cols-3 gap-8 justify-center">
@@ -463,7 +433,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- Footer --- */}
+      {/* Footer */}
       <footer className="relative z-10 py-12 bg-slate-950 border-t border-slate-900 text-center text-slate-500">
         <div className="flex items-center justify-center space-x-2 mb-4 opacity-50 hover:opacity-100 transition-opacity">
           <Target className="w-6 h-6" />
@@ -476,7 +446,6 @@ export default function Home() {
 }
 
 // --- Sub-Components ---
-
 const PortalCard: React.FC<PortalCardProps> = ({
   title,
   icon,
@@ -511,7 +480,6 @@ const PortalCard: React.FC<PortalCardProps> = ({
 
   const CardContent = () => (
     <>
-      {/* Background Glow on Hover */}
       <div
         className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${colors.bg_glow}`}
       ></div>
@@ -522,12 +490,8 @@ const PortalCard: React.FC<PortalCardProps> = ({
         >
           {icon}
         </div>
-        <h3 className="text-3xl font-bold text-white mb-4 font-serif">
-          {title}
-        </h3>
-        <p className="text-slate-400 mb-10 flex-grow text-lg leading-relaxed">
-          {description}
-        </p>
+        <h3 className="text-3xl font-bold text-white mb-4 font-serif">{title}</h3>
+        <p className="text-slate-400 mb-10 flex-grow text-lg leading-relaxed">{description}</p>
         <div
           className={`w-full py-4 rounded-xl font-bold text-slate-950 text-center flex items-center justify-center transition-all duration-300 ${colors.button} group-hover:shadow-lg`}
         >
@@ -563,12 +527,7 @@ const PortalCard: React.FC<PortalCardProps> = ({
   );
 };
 
-const FeatureCard: React.FC<FeatureCardProps> = ({
-  icon,
-  title,
-  description,
-  delay,
-}) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, delay }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -602,7 +561,7 @@ const MakerCard: React.FC<MakerCardProps> = ({ maker, index }) => {
           className="w-40 h-40 rounded-full object-cover border-4 border-slate-700 shadow-lg"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
-            target.onerror = null; // prevent infinite loop
+            target.onerror = null;
             target.src = `https://placehold.co/400x400/1e293b/eab308?text=${maker.name
               .split(' ')
               .map((n) => n[0])

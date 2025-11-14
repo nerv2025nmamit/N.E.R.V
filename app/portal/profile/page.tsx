@@ -6,7 +6,7 @@ import { User, Save, Image as ImageIcon, Briefcase, Plus, X, Hash, Book, Calenda
 import { db, appId, ensureUserIsSignedIn } from '../../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-// --- Type definition (unchanged) ---
+// --- Types (unchanged) ---
 type UserProfile = {
   profilePicUrl: string;
   bio: string;
@@ -19,6 +19,38 @@ type UserProfile = {
   gmail: string;
   uid: string;
   username: string;
+};
+
+// --- Floating bubbles (subtle, safe) ---
+const FloatingBubbles = () => {
+  const bubbles = Array.from({ length: 14 }, (_, i) => i);
+  return (
+    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+      {bubbles.map((i) => {
+        const size = 8 + (i % 6) * 3;
+        const left = (i * 7) % 100;
+        const delay = i * 0.6;
+        const duration = 10 + (i % 5) * 4;
+        return (
+          <motion.span
+            key={i}
+            className="absolute rounded-full blur-sm"
+            style={{
+              width: size,
+              height: size,
+              left: `${left}%`,
+              top: `${20 + (i % 5) * 10}%`,
+              background:
+                'radial-gradient(circle, rgba(99,102,241,0.18) 0%, rgba(16,185,129,0.18) 50%, rgba(168,85,247,0.18) 100%)',
+            }}
+            initial={{ y: 0, opacity: 0.15 }}
+            animate={{ y: -140, opacity: [0.15, 0.4, 0] }}
+            transition={{ duration, delay, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        );
+      })}
+    </div>
+  );
 };
 
 export default function ProfilePage() {
@@ -35,119 +67,118 @@ export default function ProfilePage() {
     uid: '',
     username: '',
   });
-  
+
   const [newCompany, setNewCompany] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // --- Data Loading ---
+  // --- Data Loading (unchanged logic, fixed path formatting preserved) ---
   useEffect(() => {
     const loadProfile = async () => {
       try {
         setLoading(true);
         const user = await ensureUserIsSignedIn();
-        if (!user) throw new Error("User not authenticated");
+        if (!user) throw new Error('User not authenticated');
         setUserId(user.uid);
 
         const loginData = localStorage.getItem('user');
         const { name, gmail } = loginData ? JSON.parse(loginData) : { name: 'Seeker', gmail: '' };
 
-        // --- FIX: Removed leading slash '/' ---
         const profilePath = `artifacts/${appId}/public/data/profiles/${user.uid}`;
         const profileDocRef = doc(db, profilePath);
-
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
           const dbProfile = docSnap.data() as UserProfile;
           setProfile({
             ...dbProfile,
-            name: name,
-            gmail: gmail,
+            name,
+            gmail,
             uid: user.uid,
           });
         } else {
           const suggestedUsername = name.replace(/\s+/g, '_').toLowerCase();
-          setProfile(prev => ({
+          setProfile((prev) => ({
             ...prev,
-            name: name,
-            gmail: gmail,
+            name,
+            gmail,
             uid: user.uid,
             username: suggestedUsername,
           }));
         }
       } catch (error) {
-        console.error("Error loading profile:", error);
-        setMessage("Error loading your profile.");
+        console.error('Error loading profile:', error);
+        setMessage('Error loading your profile.');
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadProfile();
   }, []);
 
-  // --- Handle simple input changes (unchanged) ---
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  // --- Handle input changes (unchanged) ---
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setProfile(prev => ({ ...prev, [name]: value }));
+    setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
   // --- Add/Remove company (unchanged) ---
   const handleAddCompany = () => {
     if (newCompany.trim()) {
-      setProfile(prev => ({
+      setProfile((prev) => ({
         ...prev,
-        pastCompanies: [...prev.pastCompanies, newCompany.trim()]
+        pastCompanies: [...prev.pastCompanies, newCompany.trim()],
       }));
       setNewCompany('');
     }
   };
 
   const handleRemoveCompany = (index: number) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
-      pastCompanies: prev.pastCompanies.filter((_, i) => i !== index)
+      pastCompanies: prev.pastCompanies.filter((_, i) => i !== index),
     }));
   };
 
-  // --- Save profile ---
+  // --- Save profile (unchanged, path fix preserved) ---
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) {
-      setMessage("Error: User not signed in.");
+      setMessage('Error: User not signed in.');
       return;
     }
 
     try {
-      setMessage("Saving...");
-      // --- FIX: Removed leading slash '/' ---
+      setMessage('Saving...');
       const profilePath = `artifacts/${appId}/public/data/profiles/${userId}`;
       const profileDocRef = doc(db, profilePath);
-      
+
       const formattedProfile = {
         ...profile,
         username: profile.username.replace(/@/g, '').replace(/\s+/g, '_'),
       };
-      
+
       await setDoc(profileDocRef, formattedProfile);
       setProfile(formattedProfile);
 
       setMessage('Your profile has been saved!');
     } catch (error) {
-      console.error("Error saving profile:", error);
-      setMessage("Failed to save profile.");
+      console.error('Error saving profile:', error);
+      setMessage('Failed to save profile.');
     } finally {
       setTimeout(() => setMessage(''), 3000);
     }
   };
 
-  // --- Render Logic (unchanged) ---
+  // --- Render Logic (unchanged structure) ---
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
+        <Loader2 className="w-12 h-12 text-indigo-400 animate-spin" />
       </div>
     );
   }
@@ -157,9 +188,11 @@ export default function ProfilePage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-4xl mx-auto"
+      className="max-w-4xl mx-auto relative"
     >
-      <h1 className="text-5xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-600 mb-8">
+      <FloatingBubbles />
+
+      <h1 className="text-5xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-emerald-400 to-purple-400 mb-8">
         Craft Your Profile
       </h1>
       <p className="text-lg text-slate-400 mb-10">
@@ -167,25 +200,27 @@ export default function ProfilePage() {
       </p>
 
       <form onSubmit={handleSaveProfile} className="space-y-10">
-
         {/* Profile Card */}
-        <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center gap-8">
+        <div className="p-8 bg-slate-900/50 border border-indigo-700 rounded-2xl flex flex-col md:flex-row items-center gap-8">
           <div className="relative">
             <motion.img
               key={profile.profilePicUrl}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={profile.profilePicUrl || 'https://placehold.co/128x128/1e293b/eab308?text=PIC'}
+              src={profile.profilePicUrl || 'https://placehold.co/128x128/1e293b/6366f1?text=PIC'}
               alt="Profile"
-              className="w-32 h-32 rounded-full object-cover border-4 border-slate-700"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/128x128/1e293b/eab308?text=PIC' }}
+              className="w-32 h-32 rounded-full object-cover border-4 border-indigo-500"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  'https://placehold.co/128x128/1e293b/6366f1?text=PIC';
+              }}
             />
-            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center border-4 border-slate-900">
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-400 rounded-full flex items-center justify-center border-4 border-slate-900">
               <User className="w-5 h-5 text-slate-900" />
             </div>
           </div>
           <div className="flex-1 w-full">
-            <label htmlFor="profilePicUrl" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="profilePicUrl" className="block text-sm font-medium text-indigo-300 mb-2">
               Profile Picture URL
             </label>
             <div className="relative">
@@ -197,7 +232,7 @@ export default function ProfilePage() {
                 placeholder="https://your-image-url.com/pic.png"
                 value={profile.profilePicUrl}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
             <p className="text-xs text-slate-500 mt-2">
@@ -205,13 +240,12 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-        
+
         {/* Main Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
           {/* Username */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="username" className="block text-sm font-medium text-indigo-300 mb-2">
               Username
             </label>
             <div className="relative">
@@ -224,17 +258,15 @@ export default function ProfilePage() {
                 value={profile.username}
                 onChange={handleChange}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
-            <p className="text-xs text-slate-500 mt-2">
-              This is your unique @handle. No spaces or @ symbols.
-            </p>
+            <p className="text-xs text-slate-500 mt-2">This is your unique @handle. No spaces or @ symbols.</p>
           </div>
-          
+
           {/* Age */}
           <div>
-            <label htmlFor="age" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="age" className="block text-sm font-medium text-indigo-300 mb-2">
               Age
             </label>
             <div className="relative">
@@ -246,14 +278,14 @@ export default function ProfilePage() {
                 placeholder="Enter your age"
                 value={profile.age}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
           </div>
 
           {/* Bio */}
           <div className="md:col-span-2">
-            <label htmlFor="bio" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="bio" className="block text-sm font-medium text-indigo-300 mb-2">
               Your Bio
             </label>
             <textarea
@@ -263,13 +295,13 @@ export default function ProfilePage() {
               placeholder="Tell your story, your skills, your mission..."
               value={profile.bio}
               onChange={handleChange}
-              className="w-full p-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+              className="w-full p-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
             />
           </div>
-          
+
           {/* Hashtags */}
           <div className="md:col-span-2">
-            <label htmlFor="hashtags" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="hashtags" className="block text-sm font-medium text-indigo-300 mb-2">
               Skill Hashtags
             </label>
             <div className="relative">
@@ -281,17 +313,15 @@ export default function ProfilePage() {
                 placeholder="#react #python #finance #marketing"
                 value={profile.hashtags}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
-            <p className="text-xs text-slate-500 mt-2">
-              Separate tags with a space. These help others find you.
-            </p>
+            <p className="text-xs text-slate-500 mt-2">Separate tags with a space. These help others find you.</p>
           </div>
 
           {/* Role */}
           <div className="md:col-span-1">
-            <label htmlFor="role" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="role" className="block text-sm font-medium text-indigo-300 mb-2">
               Current Role
             </label>
             <select
@@ -299,9 +329,11 @@ export default function ProfilePage() {
               name="role"
               value={profile.role}
               onChange={handleChange}
-              className="w-full p-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+              className="w-full p-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
             >
-              <option value="" disabled>Select your role...</option>
+              <option value="" disabled>
+                Select your role...
+              </option>
               <option value="student">Student</option>
               <option value="employee">Employee</option>
               <option value="entrepreneur">Entrepreneur</option>
@@ -310,7 +342,7 @@ export default function ProfilePage() {
 
           {/* College */}
           <div className="md:col-span-1">
-            <label htmlFor="college" className="block text-sm font-medium text-amber-400 mb-2">
+            <label htmlFor="college" className="block text-sm font-medium text-indigo-300 mb-2">
               College / University
             </label>
             <div className="relative">
@@ -322,7 +354,7 @@ export default function ProfilePage() {
                 placeholder="e.g., 'IIT Bombay', 'BITS Pilani'"
                 value={profile.college}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
           </div>
@@ -330,9 +362,7 @@ export default function ProfilePage() {
 
         {/* Past Companies */}
         <div>
-          <label className="block text-sm font-medium text-amber-400 mb-2">
-            Past Companies
-          </label>
+          <label className="block text-sm font-medium text-indigo-300 mb-2">Past Companies</label>
           <div className="flex gap-4">
             <div className="relative flex-1">
               <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
@@ -341,19 +371,19 @@ export default function ProfilePage() {
                 placeholder="Add a company name..."
                 value={newCompany}
                 onChange={(e) => setNewCompany(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50"
+                className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border-2 border-indigo-700 rounded-lg text-slate-100 placeholder-slate-500 transition-all duration-300 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
               onClick={handleAddCompany}
-              className="px-5 py-3 bg-slate-700 text-slate-100 rounded-lg font-medium transition-colors hover:bg-amber-500 hover:text-slate-900"
+              className="px-5 py-3 bg-slate-700 text-slate-100 rounded-lg font-medium transition-colors hover:bg-indigo-500 hover:text-white"
             >
               <Plus className="w-5 h-5" />
             </motion.button>
           </div>
-          
+
           <div className="flex flex-wrap gap-3 mt-4">
             <AnimatePresence>
               {profile.pastCompanies.map((company, index) => (
@@ -362,13 +392,13 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="flex items-center gap-2 pl-4 pr-2 py-1.5 bg-amber-500/10 text-amber-400 rounded-full text-sm font-medium"
+                  className="flex items-center gap-2 pl-4 pr-2 py-1.5 bg-indigo-500/10 text-indigo-300 rounded-full text-sm font-medium"
                 >
                   {company}
                   <button
                     type="button"
                     onClick={() => handleRemoveCompany(index)}
-                    className="p-1 bg-amber-500/20 rounded-full transition-colors hover:bg-red-500/50 hover:text-white"
+                    className="p-1 bg-indigo-500/20 rounded-full transition-colors hover:bg-red-500/50 hover:text-white"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -384,20 +414,15 @@ export default function ProfilePage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="px-8 py-3 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold rounded-lg shadow-lg shadow-amber-500/20 transition-all duration-300 ease-in-out hover:shadow-xl hover:shadow-amber-500/40 group flex items-center justify-center"
+            className="px-8 py-3 bg-gradient-to-r from-indigo-500 via-emerald-400 to-purple-500 text-slate-950 font-bold rounded-lg shadow-lg shadow-indigo-500/20 transition-all duration-300 ease-in-out hover:shadow-xl hover:shadow-emerald-400/40 group flex items-center justify-center"
           >
             <Save className="w-5 h-5 mr-2" />
             Save Profile
           </motion.button>
-          
+
           <AnimatePresence>
             {message && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-emerald-400"
-              >
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-emerald-400">
                 {message}
               </motion.p>
             )}

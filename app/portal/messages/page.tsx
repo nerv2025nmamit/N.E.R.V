@@ -12,37 +12,35 @@ import {
   where,
   orderBy,
   onSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 
-// --- Type Definitions ---
 interface ChatRoom {
-  id: string; // This will be the chatId
+  id: string;
   otherUserName: string;
   otherUserPic: string;
   lastMessage: string;
   lastTimestamp: Date;
 }
 
-// --- Helper Function: Time Ago ---
 const timeAgo = (date: Date): string => {
   if (!date) return 'just now';
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + 'y ago';
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + 'mo ago';
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + 'd ago';
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + 'h ago';
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + 'm ago';
-  return Math.floor(seconds) + 's ago';
+  const intervals = [
+    { label: 'y', seconds: 31536000 },
+    { label: 'mo', seconds: 2592000 },
+    { label: 'd', seconds: 86400 },
+    { label: 'h', seconds: 3600 },
+    { label: 'm', seconds: 60 },
+  ];
+  for (const { label, seconds: s } of intervals) {
+    const interval = Math.floor(seconds / s);
+    if (interval >= 1) return `${interval}${label} ago`;
+  }
+  return `${seconds}s ago`;
 };
 
-// --- Main Inbox Component ---
 export default function MessagesPage() {
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +53,6 @@ export default function MessagesPage() {
         const user = await ensureUserIsSignedIn();
         setCurrentUserId(user.uid);
 
-        // This query is now allowed by our new security rules
         const chatsCollectionPath = `/artifacts/${appId}/public/data/chats`;
         const q = query(
           collection(db, chatsCollectionPath),
@@ -63,40 +60,60 @@ export default function MessagesPage() {
           orderBy('lastTimestamp', 'desc')
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const chatList: ChatRoom[] = [];
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            
-            // Find the *other* user's ID
-            const otherUserId = data.participants.find((id: string) => id !== user.uid);
-            
-            chatList.push({
-              id: doc.id,
-              otherUserName: data.participantNames[otherUserId] || 'Unknown User',
-              otherUserPic: data.participantPictures[otherUserId] || 'https://placehold.co/80x80/1e293b/eab308?text=?',
-              lastMessage: data.lastMessage || '...',
-              lastTimestamp: data.lastTimestamp ? data.lastTimestamp.toDate() : new Date(),
+        const unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            const chatList: ChatRoom[] = [];
+
+            snapshot.forEach((doc) => {
+              const data = doc.data() as DocumentData;
+
+              // ✅ Validate participants array
+              if (!data.participants || !Array.isArray(data.participants)) {
+                console.warn(`Chat ${doc.id} missing participants array`);
+                return;
+              }
+
+              if (!data.participants.includes(user.uid)) {
+                console.warn(`Chat ${doc.id} does not include current user`);
+                return;
+              }
+
+              const otherUserId = data.participants.find((id: string) => id !== user.uid);
+              if (!otherUserId) {
+                console.warn(`Chat ${doc.id} has no other participant`);
+                return;
+              }
+
+              chatList.push({
+                id: doc.id,
+                otherUserName: data.participantNames?.[otherUserId] || 'Unknown User',
+                otherUserPic:
+                  data.participantPictures?.[otherUserId] ||
+                  'https://placehold.co/80x80/1e293b/eab308?text=?',
+                lastMessage: data.lastMessage || '...',
+                lastTimestamp: data.lastTimestamp?.toDate?.() || new Date(),
+              });
             });
-          });
-          setChats(chatList);
-          setLoading(false);
-        }, (error) => {
-          console.error("Error fetching chats:", error);
-          setLoading(false);
-        });
+
+            setChats(chatList);
+            setLoading(false);
+          },
+          (error) => {
+            console.error('Error fetching chats:', error);
+            setLoading(false);
+          }
+        );
 
         return () => unsubscribe();
-        
       } catch (error) {
-        console.error("Failed to setup inbox:", error);
+        console.error('Failed to setup inbox:', error);
         setLoading(false);
       }
     };
-    
+
     setupInbox();
   }, []);
-
 
   if (loading) {
     return (
@@ -113,7 +130,6 @@ export default function MessagesPage() {
       transition={{ duration: 0.5 }}
       className="max-w-4xl mx-auto"
     >
-      {/* --- Header --- */}
       <div className="flex items-center gap-4 mb-8">
         <Inbox className="w-12 h-12 text-amber-500" />
         <div>
@@ -124,7 +140,6 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* --- Chat List --- */}
       <div className="space-y-4">
         <AnimatePresence>
           {chats.length === 0 ? (
@@ -139,7 +154,7 @@ export default function MessagesPage() {
               </p>
             </motion.div>
           ) : (
-            chats.map(chat => (
+            chats.map((chat) => (
               <motion.div
                 key={chat.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -156,15 +171,16 @@ export default function MessagesPage() {
                     src={chat.otherUserPic}
                     alt={chat.otherUserName}
                     className="w-14 h-14 rounded-full object-cover border-2 border-slate-700"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/80x80/1e293b/eab308?text=?' }}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        'https://placehold.co/80x80/1e293b/eab308?text=?';
+                    }}
                   />
                   <div className="flex-1 overflow-hidden">
                     <h3 className="text-lg font-bold text-white font-serif truncate">
                       {chat.otherUserName}
                     </h3>
-                    <p className="text-sm text-slate-400 truncate">
-                      {chat.lastMessage}
-                    </p>
+                    <p className="text-sm text-slate-400 truncate">{chat.lastMessage}</p>
                   </div>
                   <div className="text-xs text-slate-500 self-start">
                     {timeAgo(chat.lastTimestamp)}
