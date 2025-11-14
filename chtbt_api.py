@@ -8,7 +8,6 @@ import threading
 from sentence_transformers import SentenceTransformer
 from google import generativeai as genai
 
-
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -26,15 +25,15 @@ app = FastAPI(title="Drona AI Chatbot API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 class QueryRequest(BaseModel):
     question: str
-    n_results: int = 2
 
 
 @app.get("/")
@@ -47,7 +46,6 @@ async def health():
     return {"status": "ok"}
 
 
-# --- Lazy Initialization ---
 client = None
 collection = None
 embedding_model = None
@@ -55,7 +53,7 @@ _model_lock = threading.Lock()
 
 
 def get_embedding_model():
-    """Load SentenceTransformer model lazily to prevent Railway timeout."""
+    """Load SentenceTransformer model lazily."""
     global embedding_model
     with _model_lock:
         if embedding_model is None:
@@ -76,21 +74,21 @@ def init_chroma():
     return collection
 
 
-def query_chroma(user_query: str, n_results: int = 2) -> dict:
-    """Query Chroma Cloud for the most relevant context."""
+def query_chroma(user_query: str) -> dict:
+    """Query Chroma Cloud for 1 most relevant context."""
     collection = init_chroma()
     model = get_embedding_model()
 
     emb_vector = model.encode([user_query])[0].tolist()
     results = collection.query(
         query_embeddings=[emb_vector],
-        n_results=n_results,
+        n_results=1,                                  
         include=["documents", "metadatas", "distances"]
     )
 
-    docs = results.get("documents", [[]])[0] if results.get("documents") else []
-    metadatas = results.get("metadatas", [[]])[0] if results.get("metadatas") else []
-    distances = results.get("distances", [[]])[0] if results.get("distances") else []
+    docs = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    distances = results.get("distances", [[]])[0]
 
     context_text = " ".join(docs) if docs else ""
     return {
@@ -101,8 +99,8 @@ def query_chroma(user_query: str, n_results: int = 2) -> dict:
     }
 
 
-def ask_gemini(context: str, question: str, model_name="gemini-2.0-flash"):
-    """Generate an answer from Gemini using retrieved context."""
+def ask_gemini(context: str, question: str, model_name="gemini-2.5-flash"):
+    """Generate answer from Gemini."""
     prompt = f"""
 You are Drona AI, a helpful assistant that answers based on alumni data.
 
@@ -128,9 +126,10 @@ Answer helpfully and concisely:
 async def ask(req: QueryRequest):
     """Main endpoint — query Chroma + ask Gemini."""
     try:
-        chroma_res = query_chroma(req.question, req.n_results)
+        chroma_res = query_chroma(req.question)     
         context = chroma_res["context_text"]
         answer = ask_gemini(context, req.question)
+
         return {
             "question": req.question,
             "answer": answer,
@@ -138,6 +137,7 @@ async def ask(req: QueryRequest):
             "metadatas": chroma_res["metadatas"],
             "distances": chroma_res["distances"]
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
