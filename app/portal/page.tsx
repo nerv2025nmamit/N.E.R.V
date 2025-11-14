@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { Users, Bot, Newspaper, GitBranch, Sparkles, Target, Compass, MessageSquare } from 'lucide-react';
+import { Compass, MessageSquare, Bot, Newspaper, Sparkles, Target } from 'lucide-react';
 
+// --- Particle definitions and effects as before ---
 interface Particle {
   id: number;
   x: string;
@@ -14,7 +15,6 @@ interface Particle {
   initialY?: number;
 }
 
-// --- Floating Golden Bubbles (FIXED for Hydration) ---
 const GoldenBubbles = () => {
   const [bubbles, setBubbles] = useState<Particle[]>([]);
   useEffect(() => {
@@ -58,7 +58,6 @@ const GoldenBubbles = () => {
   );
 };
 
-// --- Fiery Wisps Background Effect ---
 const FieryWisps = () => {
   const [wisps, setWisps] = useState<Particle[]>([]);
   useEffect(() => {
@@ -102,7 +101,6 @@ const FieryWisps = () => {
   );
 };
 
-// --- FlameThrowerParticles (mild flame jets) ---
 const FlameThrowerParticles = () => {
   const [flames, setFlames] = useState<Particle[]>([]);
   useEffect(() => {
@@ -133,7 +131,7 @@ const FlameThrowerParticles = () => {
             opacity: [0, 0.8, 0.6, 0],
             y: [0, -120, -150],
             scale: [1, 1.17, 1],
-            rotate: [0, (Math.random() * 18) - 9, 0], // Flicker
+            rotate: [0, (Math.random() * 18) - 9, 0],
           }}
           transition={{
             duration: flame.duration,
@@ -147,7 +145,6 @@ const FlameThrowerParticles = () => {
   );
 };
 
-// --- Arsenal Particles ---
 const ArsenalParticles = () => {
   const [particles, setParticles] = useState<Particle[]>([]);
   useEffect(() => {
@@ -247,8 +244,8 @@ const FeatureItem: React.FC<FeatureItemProps> = ({ icon: Icon, title, descriptio
       <Icon className="h-6 w-6" />
     </div>
     <div>
-      <h3 className="text-xl font-serif font-bold text-amber-200">{title}</h3>
-      <p className="text-slate-300 text-base">{description}</p>
+      <h3 className="text-lg md:text-xl font-serif font-bold text-amber-200 break-words">{title}</h3>
+      <p className="text-slate-300 text-base break-words">{description}</p>
     </div>
   </motion.li>
 );
@@ -272,28 +269,30 @@ export default function PortalPage() {
   }, []);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      transition={{ duration: 0.5 }} 
-      className="w-full relative"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="w-full min-h-screen relative overflow-x-hidden"
     >
-      {/* Background Effects */}
+
+      {/* Effects */}
       <FieryWisps />
       <GoldenBubbles />
-      <FlameThrowerParticles /> {/* NEW flame throwers */}
+      <FlameThrowerParticles />
+
       <motion.div
         className="absolute inset-0 bg-gradient-radial from-orange-400/5 via-transparent to-transparent blur-3xl scale-150 -z-30 pointer-events-none"
         animate={{ opacity: [0.1, 0.2, 0.1] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Welcome Card */}
+      {/* Welcome Card (responsive) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="relative mb-12 flex flex-col items-center rounded-2xl border border-amber-500/20 bg-gradient-to-tr from-slate-900/70 to-slate-950/40 p-8 text-center overflow-hidden shadow-2xl"
+        className="relative mb-8 flex flex-col items-center rounded-2xl border border-amber-500/20 bg-gradient-to-tr from-slate-900/70 to-slate-950/40 p-4 sm:p-6 md:p-8 w-full max-w-lg mx-auto text-center overflow-hidden shadow-2xl"
       >
         <div className="absolute inset-0 -z-10 bg-gradient-radial from-amber-400/20 via-transparent to-transparent blur-3xl scale-125 animate-pulse-light"></div>
         <motion.div
@@ -302,39 +301,32 @@ export default function PortalPage() {
           transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
         />
         <FieryArrowLogo />
-        <h1 className="mt-4 text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 font-serif tracking-widest drop-shadow-lg">
+        <h1 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 font-serif tracking-widest drop-shadow-lg break-words">
           WELCOME TO LAKSHYA
         </h1>
-        <p className="mt-4 text-lg text-slate-300">
+        <p className="mt-2 text-md sm:text-lg text-slate-300 break-words">
           Welcome to Your Portal, <span className="font-bold text-white">{userName}!</span> 👋
         </p>
-        <p className="mt-2 text-sm text-slate-400 font-serif italic">
+        <p className="mt-2 text-xs sm:text-sm text-slate-400 font-serif italic break-words">
           &quot;Karmanye Vadhikaraste Ma Phaleshu Kadachana&quot;
         </p>
       </motion.div>
 
-      {/* --- Arsenal Scroll --- */}
+      {/* Arsenal scroll/card (responsive) */}
       <motion.div
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
-        className="
-          relative p-10 md:p-14
-          rounded-3xl border border-amber-500/20 
-          bg-slate-900/70 backdrop-blur-md
-          shadow-2xl shadow-black/30
-          overflow-hidden
-          z-10
-        "
+        className="relative w-full max-w-lg mx-auto p-4 sm:p-6 md:p-8 rounded-3xl border border-amber-500/20 bg-slate-900/70 backdrop-blur-md shadow-2xl shadow-black/30 overflow-hidden z-10"
       >
         <ArsenalParticles />
         <div className="relative z-10">
-          <h2 className="mb-8 text-center text-4xl font-bold text-amber-300 font-serif drop-shadow-md">
+          <h2 className="mb-6 text-center text-2xl sm:text-3xl md:text-4xl font-bold text-amber-300 font-serif drop-shadow-md break-words">
             Your Arsenal of Abilities
             <Sparkles className="inline-block ml-2 text-yellow-300 h-8 w-8 animate-pulse-slow" />
           </h2>
           <motion.ul
-            className="space-y-8"
+            className="space-y-6"
             variants={listVariants}
             initial="hidden"
             animate="visible"
@@ -366,6 +358,7 @@ export default function PortalPage() {
           </motion.ul>
         </div>
       </motion.div>
+
       <style jsx global>{`
         @keyframes pulse-light {
           0%, 100% { opacity: 0.8; transform: scale(1.25); }
