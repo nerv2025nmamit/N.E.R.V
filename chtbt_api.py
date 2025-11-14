@@ -128,3 +128,27 @@ Answer clearly, politely, and concisely. Do NOT create data that is not present 
         return str(resp)
     except Exception as e:
         return f"Gemini Error: {e}"
+@app.post("/ask")
+def chat_api(request: QueryRequest):
+    try:
+        docs, metas, total_items = query_chroma(request.question, default_n=3)
+
+        # Join context
+        context = "\n\n---\n\n".join(docs)
+        context = context[:18000]  # safety cutoff
+
+        # Special case: user asked total count
+        if "count" in request.question.lower() or "total" in request.question.lower():
+            return {"answer": f"There are {total_items} alumni in the database."}
+
+        # Ask Gemini
+        answer = ask_gemini(context, request.question)
+
+        return {
+            "answer": answer,
+            "matched_documents": len(docs),
+            "total_alumni": total_items
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
