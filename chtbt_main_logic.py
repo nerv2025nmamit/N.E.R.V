@@ -1,4 +1,3 @@
-# chtbt_main_logic.py
 
 import os
 import sys
@@ -8,9 +7,6 @@ from dotenv import load_dotenv
 from google import generativeai as genai
 import chromadb
 
-# -------------------------
-# Environment Setup
-# -------------------------
 
 load_dotenv()
 
@@ -42,11 +38,6 @@ client = chromadb.CloudClient(
 
 collection = client.get_or_create_collection(name=COLLECTION_NAME)
 
-
-# -------------------------
-# Embeddings
-# -------------------------
-
 def get_embedding(text: str):
     if not text:
         return None
@@ -63,22 +54,17 @@ def get_embedding(text: str):
         raise RuntimeError(f"Embedding error: {e}")
 
 
-# -------------------------
-# Extract number of results
-# -------------------------
 
 def extract_num_results(query: str, default: int = 3, total_docs_count: int = None):
     query_lower = query.lower()
 
-    # If user wants ALL alumni
     if "all alumni" in query_lower or "all details" in query_lower:
         return total_docs_count
 
-    # If user wants total/count → only count, not listings
+    
     if "count" in query_lower or "total" in query_lower:
         return total_docs_count
 
-    # Extract numeric value
     for word in query.split():
         if word.isdigit():
             return int(word)
@@ -86,15 +72,10 @@ def extract_num_results(query: str, default: int = 3, total_docs_count: int = No
     return default
 
 
-
-# -------------------------
-# Chroma Retrieval
-# -------------------------
-
 def query_chroma(user_query: str, default_n: int = 3):
     total_items = collection.count()
 
-    # Detect requested output size
+   
     n_results = extract_num_results(user_query, default=default_n, total_docs_count=total_items)
 
     emb = get_embedding(user_query)
@@ -113,11 +94,6 @@ def query_chroma(user_query: str, default_n: int = 3):
     return docs, metas, total_items
 
 
-
-# -------------------------
-# Gemini Response
-# -------------------------
-
 def ask_gemini(context: str, question: str):
     prompt = f"""
 You are Drona AI, a helpful assistant that answers from alumni data.
@@ -128,7 +104,7 @@ Context:
 Question:
 {question}
 
-Answer clearly and concisely based only on the data.
+Answer clearly and concisely based only on the data.Be polite to the user and be like their guide.
 """
 
     try:
@@ -141,10 +117,6 @@ Answer clearly and concisely based only on the data.
         return f"Gemini Error: {e}"
 
 
-# -------------------------
-# CLI Spinner Animation
-# -------------------------
-
 def show_thinking(stop_event):
     symbols = ["⏳", "🤔", "🧠", "⌛"]
     i = 0
@@ -156,10 +128,6 @@ def show_thinking(stop_event):
     sys.stdout.write("\r" + " " * 40 + "\r")
     sys.stdout.flush()
 
-
-# -------------------------
-# Main Program Loop
-# -------------------------
 
 if __name__ == "__main__":
     print("Hi, I'm Drona AI 🤖 — your Alumni Roadmap Assistant!")
@@ -180,15 +148,14 @@ if __name__ == "__main__":
         try:
             docs, metas, total_items = query_chroma(user_query, default_n=3)
 
-            # Build context
+            
             full_context = "\n\n---\n\n".join(docs)
 
-            # If user wants count
             if "count" in user_query.lower() or "total" in user_query.lower():
                 reply = f"There are {total_items} alumni in the database."
 
             else:
-                # Limit context to safety boundary
+                
                 safe_context = full_context[:18000]
                 reply = ask_gemini(safe_context, user_query)
 

@@ -1,4 +1,4 @@
-# reingest_chroma_with_gemini.py
+
 import os
 import time
 import requests
@@ -11,17 +11,12 @@ from typing import List
 
 load_dotenv()
 
-# --------------------
-# Config / env check
-# --------------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CHROMA_API_KEY = os.getenv("CHROMA_API_KEY")
 CHROMA_TENANT = os.getenv("CHROMA_TENANT") or os.getenv("CHROMA-TENANT")
 CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "RAG_Chatbot_1_nerv")
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "alumni_collection_new")
 
-# If you want to overwrite the existing collection set this True.
-# Be careful: this will remove/replace previously stored embeddings if you call collection.delete() (if supported).
 REPLACE_COLLECTION = True
 
 if not all([GEMINI_API_KEY, CHROMA_API_KEY, CHROMA_TENANT]):
@@ -30,23 +25,15 @@ if not all([GEMINI_API_KEY, CHROMA_API_KEY, CHROMA_TENANT]):
 genai.configure(api_key=GEMINI_API_KEY)
 EMBED_MODEL = "models/text-embedding-004"
 
-# --------------------
-# Chroma client
-# --------------------
 client = chromadb.CloudClient(
     api_key=CHROMA_API_KEY,
     tenant=CHROMA_TENANT,
     database=CHROMA_DATABASE
 )
 
-# create or get collection
 collection = client.get_or_create_collection(name=CHROMA_COLLECTION)
 
 
-
-# --------------------
-# Helpers
-# --------------------
 def pdf_to_pages(url: str) -> List[str]:
     headers = {"User-Agent": "Mozilla/5.0"}
     r = requests.get(url, headers=headers, timeout=30)
@@ -70,7 +57,7 @@ def chunk_text(text: str, max_chars: int = 1800) -> List[str]:
     start = 0
     while start < len(text):
         end = min(start + max_chars, len(text))
-        # try to split on newline or space for nicer chunks
+        
         if end < len(text):
             nl = text.rfind("\n", start, end)
             sp = text.rfind(" ", start, end)
@@ -83,20 +70,18 @@ def chunk_text(text: str, max_chars: int = 1800) -> List[str]:
 
 def get_embedding(text: str):
     """Call Gemini embedding API (correct usage). Returns list[float]."""
-    # trim to safe length
+   
     prompt = text if len(text) <= 2000 else text[:2000]
     resp = genai.embed_content(model=EMBED_MODEL, content=prompt)
-    # resp expected as dict with 'embedding'
+    
     if isinstance(resp, dict) and "embedding" in resp:
         return resp["embedding"]
-    # fallback to attribute
+    
     if hasattr(resp, "embedding"):
         return getattr(resp, "embedding")
     raise RuntimeError("Unexpected embedding response shape: " + str(type(resp)))
 
-# --------------------
-# Ingest
-# --------------------
+
 def ingest_pdf_from_url(pdf_url: str, sleep_between_calls: float = 0.25):
     print("Fetching PDF:", pdf_url)
     pages = pdf_to_pages(pdf_url)
@@ -111,7 +96,7 @@ def ingest_pdf_from_url(pdf_url: str, sleep_between_calls: float = 0.25):
 
     idx = 0
     for page_num, page_text in enumerate(pages):
-        # chunk page if too long
+        
         chunks = chunk_text(page_text, max_chars=1800)
         for c in chunks:
             try:
@@ -123,10 +108,10 @@ def ingest_pdf_from_url(pdf_url: str, sleep_between_calls: float = 0.25):
             docs.append(c)
             embeddings.append(emb)
             idx += 1
-            time.sleep(sleep_between_calls)  # avoid rate limit spikes
+            time.sleep(sleep_between_calls)  
 
     print(f"📦 Adding {len(docs)} documents to Chroma collection '{CHROMA_COLLECTION}'...")
-    # Add in batches to be safe (Chroma add might accept large batches, but safer to chunk)
+   
     batch_size = 64
     for i in range(0, len(docs), batch_size):
         batch_docs = docs[i : i + batch_size]
@@ -139,10 +124,6 @@ def ingest_pdf_from_url(pdf_url: str, sleep_between_calls: float = 0.25):
     print("✅ Ingestion complete.")
     print(collection.count())
 
-
-# --------------------
-# Run
-# --------------------
 if __name__ == "__main__":
     PDF_URL = "https://raw.githubusercontent.com/gauravkumarp33/RAG-Chatbot-1-NERV/main/alumni%20data.pdf"
     ingest_pdf_from_url(PDF_URL)
