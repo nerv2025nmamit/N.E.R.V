@@ -16,4 +16,4 @@ services:
       - key: CHROMA_DATABASE
         value: RAG_Chatbot_1_nerv
       - key: CHROMA_COLLECTION
-        value: alumni_collection
+        value: alumni_collection_new
