@@ -1,4 +1,4 @@
-# main_logic.py
+
 import os, sys, logging, threading, time
 from dotenv import load_dotenv
 from google import generativeai as genai
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
         try:
             docs = query_chroma(user_query, n_results=2)
-            context = " ".join(docs)[:2000]  # trim context for prompt
+            context = " ".join(docs)[:2000]  
             reply = ask_gemini(context, user_query)
         except Exception as e:
             reply = f"Error: {e}"
