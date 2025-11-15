@@ -385,7 +385,7 @@ export default function WisdomHubPage() {
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300/80" />
                 <input
                   type="text"
-                  placeholder="Tag your post (e.g., #strategy #google)"
+                  placeholder="Tag your post (e.g., #COMPANYNAME #COLLEGENAME #FIELDYOUWORKIN)"
                   value={newPostHashtags}
                   onChange={(e) => setNewPostHashtags(e.target.value)}
                   className="w-full pl-10 py-2 pr-3 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
