@@ -25,6 +25,9 @@ import {
   arrayRemove,
   serverTimestamp
 } from 'firebase/firestore';
+import { ParticlesWrapper } from '../../../components/ParticlesWrapper';
+import { PageCard } from '../../../components/PageCard';
+
 
 // --- Data Types ---
 type Comment = {
@@ -78,7 +81,7 @@ const timeAgo = (timestamp: any): string => {
   return Math.floor(seconds) + 's ago';
 };
 
-// --- Custom Animation Classes ---
+// --- Custom Animation Classes (inserted via style tag) ---
 const spinSlow = `
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
@@ -97,7 +100,6 @@ export default function WisdomHubPage() {
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostHashtags, setNewPostHashtags] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-
   const [activeCommentBox, setActiveCommentBox] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -309,7 +311,7 @@ export default function WisdomHubPage() {
     }
   };
 
-    // --- Filter and Sort Posts ---
+  // --- Filter and Sort Posts ---
   const filteredPosts = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
 
@@ -331,297 +333,293 @@ export default function WisdomHubPage() {
 
   return (
     <motion.div
-      className="max-w-4xl mx-auto px-4 sm:px-6 relative"
+      className="w-full max-w-4xl mx-auto px-4 sm:px-6 relative"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Krishna aura background */}
-      <div className="absolute inset-0 -z-20 bg-gradient-to-tr from-emerald-500/10 via-indigo-500/10 to-amber-400/10 blur-3xl animate-pulse"></div>
+      <style jsx>{spinSlow}</style>
 
-      {/* Header */}
-      <div className="text-center mb-10 relative">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400/10 via-indigo-400/10 to-amber-300/10 blur-2xl rounded-full animate-pulse"></div>
-        <h1 className="text-5xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-teal-300 to-amber-300">
-          Jnana Hub 🦚
-        </h1>
-        <p className="mt-2 text-slate-300 italic">
-          {SLOGAN} — <span className="text-amber-200">ज्ञानं परम् बलम्</span>
-        </p>
-        <p className="mt-3 text-slate-400 max-w-xl mx-auto">
-          The path they have walked before. Now, they come together for your guidance.
-        </p>
+      {/* Particles (md+) */}
+      <div className="pointer-events-none -z-20 absolute inset-0">
+        <ParticlesWrapper hideOnMobile />
       </div>
 
-      {/* New Post Form */}
-      <form
-        onSubmit={handlePostSubmit}
-        className="mb-10 p-6 bg-gradient-to-br from-indigo-900/40 via-teal-900/20 to-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md relative"
-      >
-        {/* subtle feather glare */}
-        <div className="absolute inset-0 -z-10 bg-gradient-radial from-emerald-400/10 via-transparent to-transparent blur-2xl"></div>
+      {/* Safe-area wrapper */}
+      <div className="pt-safe pb-safe">
 
-        <div className="flex items-start gap-4">
-          <div className="flex-1">
-            <label className="flex items-center gap-3 mb-3">
-              <Feather className="w-5 h-5 text-emerald-400 animate-spin-slow" />
-              <span className="text-sm text-slate-300 font-medium">Share Your Wisdom</span>
-            </label>
-            <textarea
-              placeholder={
-                userCanPost
-                  ? `Share your wisdom, ${userProfile?.name}...`
-                  : 'Create your profile to share wisdom...'
-              }
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              rows={4}
-              className="w-full p-4 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/30"
-              disabled={!userCanPost}
-            />
+        {/* Header */}
+        <div className="text-center mb-8 relative">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400/6 via-indigo-400/6 to-amber-300/6 blur-2xl rounded-full animate-pulse"></div>
+          <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-teal-300 to-amber-300">
+            Jnana Hub 🦚
+          </h1>
+          <p className="mt-2 text-slate-300 italic text-sm sm:text-base">
+            {SLOGAN} — <span className="text-amber-200">ज्ञानं परम् बलम्</span>
+          </p>
+          <p className="mt-3 text-slate-400 max-w-xl mx-auto text-sm">
+            The path they have walked before. Now, they come together for your guidance.
+          </p>
+        </div>
 
-            <div className="mt-3 flex gap-3 items-center">
-              <div className="relative flex-1">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300/80" />
-                <input
-                  type="text"
-                  placeholder="Tag your post (e.g., #COMPANYNAME #COLLEGENAME #FIELDYOUWORKIN)"
-                  value={newPostHashtags}
-                  onChange={(e) => setNewPostHashtags(e.target.value)}
-                  className="w-full pl-10 py-2 pr-3 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
+        {/* New Post Form */}
+        <PageCard className="mb-8">
+          <form onSubmit={handlePostSubmit} className="relative">
+            <div className="absolute inset-0 -z-10 bg-gradient-radial from-emerald-400/8 via-transparent to-transparent blur-2xl rounded-2xl"></div>
+
+            <div className="flex flex-col md:flex-row items-start gap-4">
+              <div className="flex-1 w-full">
+                <label className="flex items-center gap-3 mb-3">
+                  <Feather className="w-5 h-5 text-emerald-400 animate-spin-slow" />
+                  <span className="text-sm text-slate-300 font-medium">Share Your Wisdom</span>
+                </label>
+
+                <textarea
+                  placeholder={
+                    userCanPost
+                      ? `Share your wisdom, ${userProfile?.name}...`
+                      : 'Create your profile to share wisdom...'
+                  }
+                  value={newPostContent}
+                  onChange={(e) => setNewPostContent(e.target.value)}
+                  rows={4}
+                  className="w-full p-4 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/30"
                   disabled={!userCanPost}
                 />
+
+                <div className="mt-3 flex flex-col sm:flex-row gap-3 items-center">
+                  <div className="relative flex-1 w-full">
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-300/80" />
+                    <input
+                      type="text"
+                      placeholder="Tag your post (e.g., #COMPANY #COLLEGE #FIELD)"
+                      value={newPostHashtags}
+                      onChange={(e) => setNewPostHashtags(e.target.value)}
+                      className="w-full pl-10 py-2 pr-3 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
+                      disabled={!userCanPost}
+                    />
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    className="px-5 py-2 w-full sm:w-auto bg-gradient-to-r from-emerald-400 to-amber-300 text-slate-900 font-semibold rounded-lg shadow-md disabled:opacity-50"
+                    disabled={!newPostContent.trim() || !userCanPost}
+                  >
+                    Post
+                  </motion.button>
+                </div>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                className="px-5 py-2 bg-gradient-to-r from-emerald-400 to-amber-300 text-slate-900 font-semibold rounded-lg shadow-md disabled:opacity-50"
-                disabled={!newPostContent.trim() || !userCanPost}
+
+              <div className="w-full md:w-24 flex flex-col items-center">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-teal-300 flex items-center justify-center text-slate-900 font-bold shadow-inner">
+                  {userProfile?.name?.charAt(0) || 'U'}
+                </div>
+                <p className="mt-2 text-xs text-slate-400">{userProfile?.username || 'unknown'}</p>
+              </div>
+            </div>
+          </form>
+        </PageCard>
+
+        {/* Search + header */}
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white">Community Chronicles</h2>
+          <div className="w-full sm:w-72">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-300" />
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search @users or #tags..."
+                className="w-full pl-10 pr-3 py-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Post Feed */}
+        <div className="space-y-6">
+          <AnimatePresence>
+            {loadingPosts ? (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="w-10 h-10 text-amber-300 animate-spin" />
+              </div>
+            ) : filteredPosts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center p-6 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl"
               >
-                Post
-              </motion.button>
-            </div>
-          </div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white">The Hub is Empty</h3>
+                <p className="text-slate-400 mt-2">
+                  {searchTerm
+                    ? 'No wisdom matches your search.'
+                    : 'Be the first to share your wisdom and guide others!'}
+                </p>
+              </motion.div>
+            ) : (
+              filteredPosts.map((post) => {
+                const userHasLiked =
+                  currentUser && (post.likedBy || []).includes(currentUser.uid);
+                return (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.35 }}
+                    className="relative bg-gradient-to-br from-indigo-900/30 via-teal-900/10 to-slate-900/30 border border-slate-800 rounded-2xl shadow-lg overflow-hidden"
+                  >
+                    {/* Krishna feather glare */}
+                    <div className="absolute inset-0 bg-gradient-radial from-emerald-500/5 via-transparent to-transparent blur-2xl -z-10"></div>
 
-          <div className="w-20 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-teal-300 flex items-center justify-center text-slate-900 font-bold shadow-inner">
-              {userProfile?.name?.charAt(0) || 'U'}
-            </div>
-            <p className="mt-2 text-xs text-slate-400">{userProfile?.username || 'unknown'}</p>
-          </div>
-        </div>
-      </form>
-
-      {/* Search + header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-3xl font-serif font-bold text-white">Community Chronicles</h2>
-        <div className="relative w-1/3 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-300" />
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search @users or #tags..."
-            className="w-full pl-10 pr-3 py-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
-          />
-        </div>
-      </div>
-
-      {/* Post Feed */}
-      <div className="space-y-6">
-        <AnimatePresence>
-          {loadingPosts ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="w-12 h-12 text-amber-300 animate-spin" />
-            </div>
-          ) : filteredPosts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center p-10 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl"
-            >
-              <h3 className="text-xl font-semibold text-white">The Hub is Empty</h3>
-              <p className="text-slate-400 mt-2">
-                {searchTerm
-                  ? 'No wisdom matches your search.'
-                  : 'Be the first to share your wisdom and guide others!'}
-              </p>
-            </motion.div>
-          ) : (
-            filteredPosts.map((post) => {
-              const userHasLiked =
-                currentUser && (post.likedBy || []).includes(currentUser.uid);
-              return (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.35 }}
-                  className="relative bg-gradient-to-br from-indigo-900/30 via-teal-900/10 to-slate-900/30 border border-slate-800 rounded-2xl shadow-lg overflow-hidden"
-                >
-                  {/* Krishna feather glare */}
-                  <div className="absolute inset-0 bg-gradient-radial from-emerald-500/5 via-transparent to-transparent blur-2xl -z-10"></div>
-
-                  {/* Header */}
-                  <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={
-                          post.authorProfilePic ||
-                          'https://placehold.co/80x80/0f172a/ffd166?text=PIC'
-                        }
-                        alt={post.authorName}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
-                      />
-                      <div>
-                        <h4 className="text-sm font-bold text-white">{post.authorName}</h4>
-                        <p className="text-xs text-slate-400">
-                          @{post.authorUsername} • {timeAgo(post.timestamp)}
-                        </p>
+                    {/* Header */}
+                    <div className="p-4 border-b border-slate-800 flex items-center gap-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            post.authorProfilePic ||
+                            'https://placehold.co/80x80/0f172a/ffd166?text=PIC'
+                          }
+                          alt={post.authorName}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
+                        />
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{post.authorName}</h4>
+                          <p className="text-xs text-slate-400">
+                            @{post.authorUsername} • {timeAgo(post.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="ml-auto text-amber-200 font-mono text-xs px-3 py-1 rounded bg-amber-900/10">
+                        #{post.hashtags?.[0] || 'wisdom'}
                       </div>
                     </div>
-                                        <div className="ml-auto text-amber-200 font-mono text-xs px-3 py-1 rounded bg-amber-900/10">
-                      #{post.hashtags?.[0] || 'wisdom'}
-                    </div>
-                  </div>
 
-                  {/* Content */}
-                  <div className="p-5">
-                    <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
-                      {post.content}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {post.hashtags?.map((tag) => (
-                        <button
-                          key={tag}
-                          onClick={() => setSearchTerm(tag)}
-                          className="px-3 py-1 bg-amber-300/10 text-amber-200 text-xs rounded-full hover:backdrop-brightness-110"
-                        >
-                          #{tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="p-4 border-t border-slate-800 bg-slate-900/30 flex items-center gap-4">
-                    <motion.button
-                      whileTap={{ scale: 1.15 }}
-                      onClick={() => handleLikePost(post.id)}
-                      className={`flex items-center gap-2 ${
-                        userHasLiked
-                          ? 'text-red-500'
-                          : 'text-slate-300 hover:text-amber-300'
-                      }`}
-                      disabled={!currentUser}
-                    >
-                      <Heart className="w-5 h-5" />
-                      <span className="text-sm font-medium">
-                        {(post.likedBy || []).length}
-                      </span>
-                    </motion.button>
-
-                    <button
-                      onClick={() =>
-                        setActiveCommentBox(
-                          activeCommentBox === post.id ? null : post.id
-                        )
-                      }
-                      className="flex items-center gap-2 text-slate-300 hover:text-amber-300"
-                    >
-                      <MessageSquare className="w-5 h-5" />
-                      <span className="text-sm font-medium">Comment</span>
-                    </button>
-
-                    <div className="ml-auto text-xs text-slate-400">
-                      {post.authorName !== userProfile?.name ? '' : 'Your post'}
-                    </div>
-                  </div>
-
-                  {/* Comments */}
-                  <AnimatePresence>
-                    {activeCommentBox === post.id && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="bg-slate-900/20 p-4"
-                      >
-                        <div className="space-y-3">
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              handleCommentSubmit(post.id);
-                            }}
-                            className="flex gap-2"
+                    {/* Content */}
+                    <div className="p-5">
+                      <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
+                        {post.content}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {post.hashtags?.map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => setSearchTerm(tag)}
+                            className="px-3 py-1 bg-amber-300/10 text-amber-200 text-xs rounded-full hover:backdrop-brightness-110"
                           >
-                            <input
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              placeholder={
-                                userCanPost
-                                  ? 'Add your comment...'
-                                  : 'Log in to comment'
-                              }
-                              className="flex-1 p-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200"
-                              disabled={!userCanPost}
-                            />
-                            <motion.button
-                              whileTap={{ scale: 1.05 }}
-                              className="px-3 py-2 bg-amber-300 text-slate-900 rounded-md"
-                              disabled={!newComment.trim() || !userCanPost}
-                            >
-                              <Send className="w-4 h-4" />
-                            </motion.button>
-                          </form>
+                            #{tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                          {loadingComments ? (
-                            <div className="flex items-center justify-center p-4">
-                              <Loader2 className="w-5 h-5 text-amber-300 animate-spin" />
-                            </div>
-                          ) : comments.length === 0 ? (
-                            <p className="text-sm text-slate-400">
-                              No comments yet.
-                            </p>
-                          ) : (
-                            comments.map((c) => (
-                              <div
-                                key={c.id}
-                                className="flex gap-3 items-start"
+                    {/* Footer */}
+                    <div className="p-4 border-t border-slate-800 bg-slate-900/30 flex items-center gap-4">
+                      <motion.button
+                        whileTap={{ scale: 1.15 }}
+                        onClick={() => handleLikePost(post.id)}
+                        className={`flex items-center gap-2 ${
+                          userHasLiked ? 'text-red-500' : 'text-slate-300 hover:text-amber-300'
+                        }`}
+                        disabled={!currentUser}
+                      >
+                        <Heart className="w-5 h-5" />
+                        <span className="text-sm font-medium">
+                          {(post.likedBy || []).length}
+                        </span>
+                      </motion.button>
+
+                      <button
+                        onClick={() =>
+                          setActiveCommentBox(activeCommentBox === post.id ? null : post.id)
+                        }
+                        className="flex items-center gap-2 text-slate-300 hover:text-amber-300"
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                        <span className="text-sm font-medium">Comment</span>
+                      </button>
+
+                      <div className="ml-auto text-xs text-slate-400">
+                        {post.authorName !== userProfile?.name ? '' : 'Your post'}
+                      </div>
+                    </div>
+
+                    {/* Comments */}
+                    <AnimatePresence>
+                      {activeCommentBox === post.id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="bg-slate-900/20 p-4"
+                        >
+                          <div className="space-y-3">
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleCommentSubmit(post.id);
+                              }}
+                              className="flex gap-2"
+                            >
+                              <input
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                placeholder={userCanPost ? 'Add your comment...' : 'Log in to comment'}
+                                className="flex-1 p-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200"
+                                disabled={!userCanPost}
+                              />
+                              <motion.button
+                                whileTap={{ scale: 1.05 }}
+                                className="px-3 py-2 bg-amber-300 text-slate-900 rounded-md"
+                                disabled={!newComment.trim() || !userCanPost}
                               >
-                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-200">
-                                  {c.authorName.charAt(0)}
-                                </div>
-                                <div className="bg-slate-800/40 p-3 rounded-md w-full">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <div className="text-sm font-semibold text-white">
-                                        {c.authorName}
-                                      </div>
-                                      <div className="text-xs text-slate-400">
-                                        @{c.authorUsername} •{' '}
-                                        {timeAgo(c.timestamp)}
+                                <Send className="w-4 h-4" />
+                              </motion.button>
+                            </form>
+
+                            {loadingComments ? (
+                              <div className="flex items-center justify-center p-4">
+                                <Loader2 className="w-5 h-5 text-amber-300 animate-spin" />
+                              </div>
+                            ) : comments.length === 0 ? (
+                              <p className="text-sm text-slate-400">No comments yet.</p>
+                            ) : (
+                              comments.map((c) => (
+                                <div key={c.id} className="flex gap-3 items-start">
+                                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-200">
+                                    {c.authorName.charAt(0)}
+                                  </div>
+                                  <div className="bg-slate-800/40 p-3 rounded-md w-full">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="text-sm font-semibold text-white">{c.authorName}</div>
+                                        <div className="text-xs text-slate-400">
+                                          @{c.authorUsername} • {timeAgo(c.timestamp)}
+                                        </div>
                                       </div>
                                     </div>
+                                    <p className="text-sm text-slate-300 mt-2">{c.text}</p>
                                   </div>
-                                  <p className="text-sm text-slate-300 mt-2">
-                                    {c.text}
-                                  </p>
                                 </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })
-          )}
-        </AnimatePresence>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+
+      <style jsx>{`
+        .pt-safe { padding-top: env(safe-area-inset-top, 12px); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
+      `}</style>
     </motion.div>
   );
 }
