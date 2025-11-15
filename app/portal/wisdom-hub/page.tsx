@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -9,7 +10,8 @@ import {
   Tag,
   Send,
   Feather,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { db, appId, ensureUserIsSignedIn } from '../../firebase';
 import {
@@ -21,13 +23,13 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
   arrayUnion,
   arrayRemove,
   serverTimestamp
 } from 'firebase/firestore';
 import { ParticlesWrapper } from '../../../components/ParticlesWrapper';
 import { PageCard } from '../../../components/PageCard';
-
 
 // --- Data Types ---
 type Comment = {
@@ -49,7 +51,7 @@ type Post = {
   content: string;
   hashtags: string[];
   likedBy: string[];
-  comments: Comment[];
+  comments?: Comment[];
 };
 
 type UserProfile = {
@@ -58,10 +60,8 @@ type UserProfile = {
   profilePicUrl: string;
 };
 
-// Sanskrit slogan
-const SLOGAN = 'ज्ञानं परमं बलम्'; // "Wisdom is the supreme power"
+const SLOGAN = 'ज्ञानं परमं बलम्';
 
-// --- Helper Function: Time Ago ---
 const timeAgo = (timestamp: any): string => {
   if (!timestamp) return 'just now';
   const date = timestamp.toDate();
@@ -81,7 +81,6 @@ const timeAgo = (timestamp: any): string => {
   return Math.floor(seconds) + 's ago';
 };
 
-// --- Custom Animation Classes (inserted via style tag) ---
 const spinSlow = `
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
@@ -103,7 +102,7 @@ export default function WisdomHubPage() {
   const [activeCommentBox, setActiveCommentBox] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
-  const [newComment, setNewComment] = useState('');
+  const [newComments, setNewComments] = useState<Record<string, string>>({});
 
   // --- 1. Get Current User and their Profile ---
   useEffect(() => {
@@ -140,14 +139,7 @@ export default function WisdomHubPage() {
   // --- 2. Fetch All Posts in Real-Time ---
   useEffect(() => {
     setLoadingPosts(true);
-    const postsRef = collection(
-      db,
-      'artifacts',
-      appId,
-      'public',
-      'data',
-      'wisdomHubPosts'
-    );
+    const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts');
     const q = query(postsRef, orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(
@@ -232,14 +224,7 @@ export default function WisdomHubPage() {
     };
 
     try {
-      const postsRef = collection(
-        db,
-        'artifacts',
-        appId,
-        'public',
-        'data',
-        'wisdomHubPosts'
-      );
+      const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts');
       await addDoc(postsRef, newPost);
       setNewPostContent('');
       setNewPostHashtags('');
@@ -252,28 +237,16 @@ export default function WisdomHubPage() {
   const handleLikePost = async (postId: string) => {
     if (!currentUser) return;
 
-    const postRef = doc(
-      db,
-      'artifacts',
-      appId,
-      'public',
-      'data',
-      'wisdomHubPosts',
-      postId
-    );
+    const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId);
     const post = posts.find((p) => p.id === postId);
 
     if (post) {
       const alreadyLiked = (post.likedBy || []).includes(currentUser.uid);
       try {
         if (alreadyLiked) {
-          await updateDoc(postRef, {
-            likedBy: arrayRemove(currentUser.uid)
-          });
+          await updateDoc(postRef, { likedBy: arrayRemove(currentUser.uid) });
         } else {
-          await updateDoc(postRef, {
-            likedBy: arrayUnion(currentUser.uid)
-          });
+          await updateDoc(postRef, { likedBy: arrayUnion(currentUser.uid) });
         }
       } catch (error) {
         console.error('Error liking post:', error);
@@ -281,15 +254,34 @@ export default function WisdomHubPage() {
     }
   };
 
-  // --- Handle Submitting a Comment ---
+  // --- Handle Deleting a Post (only author) ---
+  const handleDeletePost = async (postId: string) => {
+    if (!currentUser) return;
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    if (post.authorId !== currentUser.uid) return;
+
+    const confirmed = confirm('Delete this post? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId);
+      await deleteDoc(postRef);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
+  // --- Handle Submitting a Comment (per-post input) ---
   const handleCommentSubmit = async (postId: string) => {
-    if (!newComment.trim() || !currentUser || !userProfile) return;
+    const text = (newComments[postId] || '').trim();
+    if (!text || !currentUser || !userProfile) return;
 
     const newCommentObj = {
       authorId: currentUser.uid,
       authorName: userProfile.name,
       authorUsername: userProfile.username || 'unknown',
-      text: newComment.trim(),
+      text,
       timestamp: serverTimestamp()
     };
 
@@ -305,10 +297,14 @@ export default function WisdomHubPage() {
         'comments'
       );
       await addDoc(commentsRef, newCommentObj);
-      setNewComment('');
+      setNewComments((prev) => ({ ...prev, [postId]: '' }));
     } catch (error) {
       console.error('Error adding comment:', error);
     }
+  };
+
+  const setCommentForPost = (postId: string, value: string) => {
+    setNewComments((prev) => ({ ...prev, [postId]: value }));
   };
 
   // --- Filter and Sort Posts ---
@@ -340,29 +336,24 @@ export default function WisdomHubPage() {
     >
       <style jsx>{spinSlow}</style>
 
-      {/* Particles (md+) */}
       <div className="pointer-events-none -z-20 absolute inset-0">
         <ParticlesWrapper hideOnMobile />
       </div>
 
-      {/* Safe-area wrapper */}
       <div className="pt-safe pb-safe">
-
-        {/* Header */}
         <div className="text-center mb-8 relative">
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400/6 via-indigo-400/6 to-amber-300/6 blur-2xl rounded-full animate-pulse"></div>
           <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-teal-300 to-amber-300">
             Jnana Hub 🦚
           </h1>
           <p className="mt-2 text-slate-300 italic text-sm sm:text-base">
-            {SLOGAN} — <span className="text-amber-200">ज्ञानं परम् बलम्</span>
+            {SLOGAN} — <span className="text-amber-200">ज्ञानं परमं बलम्</span>
           </p>
           <p className="mt-3 text-slate-400 max-w-xl mx-auto text-sm">
             The path they have walked before. Now, they come together for your guidance.
           </p>
         </div>
 
-        {/* New Post Form */}
         <PageCard className="mb-8">
           <form onSubmit={handlePostSubmit} className="relative">
             <div className="absolute inset-0 -z-10 bg-gradient-radial from-emerald-400/8 via-transparent to-transparent blur-2xl rounded-2xl"></div>
@@ -421,7 +412,6 @@ export default function WisdomHubPage() {
           </form>
         </PageCard>
 
-        {/* Search + header */}
         <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white">Community Chronicles</h2>
           <div className="w-full sm:w-72">
@@ -437,7 +427,6 @@ export default function WisdomHubPage() {
           </div>
         </div>
 
-        {/* Post Feed */}
         <div className="space-y-6">
           <AnimatePresence>
             {loadingPosts ? (
@@ -461,6 +450,8 @@ export default function WisdomHubPage() {
               filteredPosts.map((post) => {
                 const userHasLiked =
                   currentUser && (post.likedBy || []).includes(currentUser.uid);
+                const isAuthor = currentUser && post.authorId === currentUser.uid;
+
                 return (
                   <motion.div
                     key={post.id}
@@ -468,28 +459,30 @@ export default function WisdomHubPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -12 }}
                     transition={{ duration: 0.35 }}
-                    className="relative bg-gradient-to-br from-indigo-900/30 via-teal-900/10 to-slate-900/30 border border-slate-800 rounded-2xl shadow-lg overflow-hidden"
+                    className="relative bg-gradient-to-br from-indigo-900/30 via-teal-900/10 to-slate-900/30 border border-slate-800 rounded-2xl shadow-lg overflow-hidden hover-glow transition"
                   >
-                    {/* Krishna feather glare */}
                     <div className="absolute inset-0 bg-gradient-radial from-emerald-500/5 via-transparent to-transparent blur-2xl -z-10"></div>
 
-                    {/* Header */}
+                    {/* Header — clickable author with golden hover glow */}
                     <div className="p-4 border-b border-slate-800 flex items-center gap-3">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={
-                            post.authorProfilePic ||
-                            'https://placehold.co/80x80/0f172a/ffd166?text=PIC'
-                          }
-                          alt={post.authorName}
-                          className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
-                        />
-                        <div>
-                          <h4 className="text-sm font-bold text-white">{post.authorName}</h4>
-                          <p className="text-xs text-slate-400">
-                            @{post.authorUsername} • {timeAgo(post.timestamp)}
-                          </p>
-                        </div>
+                        <Link
+                          href={`/portal/stroll/${post.authorId}`}
+                          className="author-link inline-flex items-center gap-3"
+                          aria-label={`Open ${post.authorName} profile`}
+                        >
+                          <img
+                            src={post.authorProfilePic || 'https://placehold.co/80x80/0f172a/ffd166?text=PIC'}
+                            alt={post.authorName}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
+                          />
+                          <div>
+                            <h4 className="text-sm font-bold text-white">{post.authorName}</h4>
+                            <p className="text-xs text-slate-400">
+                              @{post.authorUsername} • {timeAgo(post.timestamp)}
+                            </p>
+                          </div>
+                        </Link>
                       </div>
                       <div className="ml-auto text-amber-200 font-mono text-xs px-3 py-1 rounded bg-amber-900/10">
                         #{post.hashtags?.[0] || 'wisdom'}
@@ -498,9 +491,7 @@ export default function WisdomHubPage() {
 
                     {/* Content */}
                     <div className="p-5">
-                      <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
-                        {post.content}
-                      </p>
+                      <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">{post.content}</p>
                       <div className="flex flex-wrap gap-2 mt-4">
                         {post.hashtags?.map((tag) => (
                           <button
@@ -519,7 +510,7 @@ export default function WisdomHubPage() {
                       <motion.button
                         whileTap={{ scale: 1.15 }}
                         onClick={() => handleLikePost(post.id)}
-                        className={`flex items-center gap-2 ${
+                        className={`flex items-center gap-2 like-btn ${
                           userHasLiked ? 'text-red-500' : 'text-slate-300 hover:text-amber-300'
                         }`}
                         disabled={!currentUser}
@@ -539,6 +530,17 @@ export default function WisdomHubPage() {
                         <MessageSquare className="w-5 h-5" />
                         <span className="text-sm font-medium">Comment</span>
                       </button>
+
+                      {isAuthor && (
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="ml-2 inline-flex items-center gap-2 text-sm text-red-400 hover:text-red-500"
+                          title="Delete post"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      )}
 
                       <div className="ml-auto text-xs text-slate-400">
                         {post.authorName !== userProfile?.name ? '' : 'Your post'}
@@ -563,8 +565,8 @@ export default function WisdomHubPage() {
                               className="flex gap-2"
                             >
                               <input
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
+                                value={newComments[post.id] || ''}
+                                onChange={(e) => setCommentForPost(post.id, e.target.value)}
                                 placeholder={userCanPost ? 'Add your comment...' : 'Log in to comment'}
                                 className="flex-1 p-2 bg-slate-900/50 border border-slate-800 rounded-md text-slate-200"
                                 disabled={!userCanPost}
@@ -572,7 +574,7 @@ export default function WisdomHubPage() {
                               <motion.button
                                 whileTap={{ scale: 1.05 }}
                                 className="px-3 py-2 bg-amber-300 text-slate-900 rounded-md"
-                                disabled={!newComment.trim() || !userCanPost}
+                                disabled={!((newComments[post.id] || '').trim()) || !userCanPost}
                               >
                                 <Send className="w-4 h-4" />
                               </motion.button>
@@ -588,15 +590,13 @@ export default function WisdomHubPage() {
                               comments.map((c) => (
                                 <div key={c.id} className="flex gap-3 items-start">
                                   <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-200">
-                                    {c.authorName.charAt(0)}
+                                    {c.authorName?.charAt(0) || 'U'}
                                   </div>
                                   <div className="bg-slate-800/40 p-3 rounded-md w-full">
                                     <div className="flex items-center justify-between">
                                       <div>
                                         <div className="text-sm font-semibold text-white">{c.authorName}</div>
-                                        <div className="text-xs text-slate-400">
-                                          @{c.authorUsername} • {timeAgo(c.timestamp)}
-                                        </div>
+                                        <div className="text-xs text-slate-400">@{c.authorUsername} • {timeAgo(c.timestamp)}</div>
                                       </div>
                                     </div>
                                     <p className="text-sm text-slate-300 mt-2">{c.text}</p>
@@ -619,6 +619,68 @@ export default function WisdomHubPage() {
       <style jsx>{`
         .pt-safe { padding-top: env(safe-area-inset-top, 12px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
+
+        .hover-glow {
+          transition: box-shadow 180ms ease, transform 180ms ease;
+        }
+        .hover-glow:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 30px rgba(234,179,8,0.12), 0 2px 8px rgba(99,102,241,0.06);
+        }
+
+        /* stronger author link rules so hover glow shows clearly */
+        .author-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 6px 10px;
+          border-radius: 9999px;
+          text-decoration: none;
+          transition: transform 160ms ease, box-shadow 180ms ease, outline-color 160ms ease;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        /* make image participate in the glow */
+        .author-link img {
+          width: 40px;
+          height: 40px;
+          border-radius: 9999px;
+          transition: transform 160ms ease, box-shadow 180ms ease, filter 180ms ease;
+          will-change: transform, box-shadow;
+        }
+
+        /* golden glow on hover/focus */
+        .author-link:hover,
+        .author-link:focus-visible {
+          transform: translateY(-2px);
+          outline: none;
+        }
+
+        .author-link:hover img,
+        .author-link:focus-visible img {
+          transform: translateY(-2px) scale(1.03);
+          box-shadow:
+            0 18px 40px rgba(250,204,21,0.18),
+            0 6px 18px rgba(250,204,21,0.12),
+            0 2px 8px rgba(99,102,241,0.04);
+          filter: drop-shadow(0 6px 18px rgba(250,204,21,0.12));
+        }
+
+        .author-link:hover h4,
+        .author-link:focus-visible h4 {
+          text-shadow: 0 2px 10px rgba(250,204,21,0.12);
+        }
+
+        .like-btn {
+          transition: box-shadow 160ms ease, transform 160ms ease;
+          border-radius: 9999px;
+          padding: 6px;
+        }
+        .like-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(239,68,68,0.12);
+        }
       `}</style>
     </motion.div>
   );

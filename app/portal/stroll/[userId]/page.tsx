@@ -11,16 +11,16 @@ import { ParticlesWrapper } from '../../../../components/ParticlesWrapper';
 import { PageCard } from '../../../../components/PageCard';
 
 type UserProfile = {
-  uid: string;
-  name: string;
-  username: string;
-  profilePicUrl: string;
-  bio: string;
-  hashtags: string;
-  role: 'student' | 'employee' | 'entrepreneur' | '';
-  college: string;
-  pastCompanies: string[];
-  age: number | '';
+  uid?: string;
+  name?: string;
+  username?: string;
+  profilePicUrl?: string;
+  bio?: string;
+  hashtags?: string;
+  role?: 'student' | 'employee' | 'entrepreneur' | '';
+  college?: string;
+  pastCompanies?: string[];
+  age?: number | '';
 };
 
 export default function ViewProfilePage() {
@@ -30,32 +30,50 @@ export default function ViewProfilePage() {
 
   const params = useParams();
   const router = useRouter();
-  const userId = params.userId as string;
+  const userId = params?.userId as string | undefined;
 
   useEffect(() => {
     const loadProfile = async () => {
+      if (!userId) {
+        setLoading(false);
+        console.warn('ViewProfilePage: missing userId param');
+        return;
+      }
+
       try {
         setLoading(true);
         const currentUser = await ensureUserIsSignedIn();
-        setCurrentUserId(currentUser.uid);
+        setCurrentUserId(currentUser?.uid ?? null);
 
-        const profilePath = `/artifacts/${appId}/public/data/profiles/${userId}`;
-        const profileDocRef = doc(db, profilePath);
+        // IMPORTANT: pass path segments to doc(), not a single concatenated path string
+        const profileDocRef = doc(
+          db,
+          'artifacts',
+          appId,
+          'public',
+          'data',
+          'profiles',
+          userId
+        );
         const docSnap = await getDoc(profileDocRef);
 
         if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
+          const data = docSnap.data() as UserProfile;
+          data.uid = userId; // ensure uid is present for comparisons
+          setProfile(data);
         } else {
-          console.error('No such profile!');
+          console.warn('No profile document found for uid:', userId);
+          setProfile(null);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
     };
 
-    if (userId) loadProfile();
+    loadProfile();
   }, [userId]);
 
   const handleMessageClick = async () => {
@@ -64,7 +82,7 @@ export default function ViewProfilePage() {
     const chatId = [currentUserId, userId].sort().join('_');
 
     try {
-      const chatDocRef = doc(db, `/artifacts/${appId}/public/data/chats/${chatId}`);
+      const chatDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'chats', chatId);
 
       const loginData = localStorage.getItem('user');
       const currentUserInfo = loginData ? JSON.parse(loginData) : { name: 'Current User' };
@@ -159,7 +177,7 @@ export default function ViewProfilePage() {
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-900 font-semibold rounded-lg shadow-sm"
                     >
                       <Send className="w-4 h-4" />
-                      Message {profile.name.split(' ')[0]}
+                      Message {profile.name?.split(' ')[0]}
                     </button>
                   )}
                 </div>
