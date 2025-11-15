@@ -1,21 +1,15 @@
 import './globals.css';
-import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 
-export const metadata: Metadata = {
-  title: 'Login Portal',
-  description: 'Simple Next.js Login Portal',
+export const metadata = {
+  title: 'Lakshya Portal',
+  description: 'Your flame-bubbles portal homepage',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: 'Arial, sans-serif' }}>
-        {children}
-      </body>
+      <body className="m-0 font-sans">{children}</body>
     </html>
   );
 }
