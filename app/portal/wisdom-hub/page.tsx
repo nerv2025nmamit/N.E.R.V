@@ -11,7 +11,8 @@ import {
   Send,
   Feather,
   Loader2,
-  Trash2
+  Trash2,
+  Edit3
 } from 'lucide-react';
 import { db, appId, ensureUserIsSignedIn } from '../../firebase';
 import {
@@ -31,7 +32,7 @@ import {
 import { ParticlesWrapper } from '../../../components/ParticlesWrapper';
 import { PageCard } from '../../../components/PageCard';
 
-// --- Data Types ---
+// --- Types ---
 type Comment = {
   id: string;
   authorId: string;
@@ -51,7 +52,6 @@ type Post = {
   content: string;
   hashtags: string[];
   likedBy: string[];
-  comments?: Comment[];
 };
 
 type UserProfile = {
@@ -62,12 +62,12 @@ type UserProfile = {
 
 const SLOGAN = 'ज्ञानं परमं बलम्';
 
+// --- Helpers ---
 const timeAgo = (timestamp: any): string => {
   if (!timestamp) return 'just now';
   const date = timestamp.toDate();
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + 'y ago';
   interval = seconds / 2592000;
@@ -81,93 +81,68 @@ const timeAgo = (timestamp: any): string => {
   return Math.floor(seconds) + 's ago';
 };
 
-const spinSlow = `
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.animate-spin-slow {
-  animation: spin-slow 12s linear infinite;
-}
-`;
-
 export default function WisdomHubPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostHashtags, setNewPostHashtags] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+
   const [activeCommentBox, setActiveCommentBox] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComments, setNewComments] = useState<Record<string, string>>({});
 
-  // --- 1. Get Current User and their Profile ---
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+
+  // --- Load current user profile ---
   useEffect(() => {
     const setupUser = async () => {
-      try {
-        const user = await ensureUserIsSignedIn();
-        setCurrentUser(user);
+      const user = await ensureUserIsSignedIn();
+      setCurrentUser(user);
 
-        const profileDocRef = doc(
-          db,
-          'artifacts',
-          appId,
-          'public',
-          'data',
-          'profiles',
-          user.uid
-        );
-        const docSnap = await getDoc(profileDocRef);
-
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
-        } else {
-          const loginData = localStorage.getItem('user');
-          const { name } = loginData ? JSON.parse(loginData) : { name: 'Anonymous' };
-          setUserProfile({ name: name, username: 'unknown', profilePicUrl: '' });
-        }
-      } catch (e) {
-        console.error('Auth failed:', e);
+      const profileDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'profiles', user.uid);
+      const docSnap = await getDoc(profileDocRef);
+      if (docSnap.exists()) {
+        setUserProfile(docSnap.data() as UserProfile);
+      } else {
+        const loginData = localStorage.getItem('user');
+        const { name } = loginData ? JSON.parse(loginData) : { name: 'Anonymous' };
+        setUserProfile({ name, username: 'unknown', profilePicUrl: '' });
       }
     };
     setupUser();
   }, []);
 
-  // --- 2. Fetch All Posts in Real-Time ---
+  // --- Real-time posts ---
   useEffect(() => {
     setLoadingPosts(true);
     const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts');
     const q = query(postsRef, orderBy('timestamp', 'desc'));
-
-    const unsubscribe = onSnapshot(
+    const unsub = onSnapshot(
       q,
       (snapshot) => {
-        const postsList: Post[] = [];
-        snapshot.forEach((d) => {
-          postsList.push({ id: d.id, ...(d.data() as any) } as Post);
-        });
-        setPosts(postsList);
+        const list: Post[] = [];
+        snapshot.forEach((d) => list.push({ id: d.id, ...(d.data() as any) } as Post));
+        setPosts(list);
         setLoadingPosts(false);
       },
-      (error) => {
-        console.error('Error fetching posts:', error);
-        setLoadingPosts(false);
-      }
+      () => setLoadingPosts(false)
     );
-
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  // --- 3. Fetch Comments for Active Post ---
+  // --- Real-time comments for active post ---
   useEffect(() => {
     if (!activeCommentBox) {
       setComments([]);
       return;
     }
-
     setLoadingComments(true);
     const commentsRef = collection(
       db,
@@ -180,152 +155,129 @@ export default function WisdomHubPage() {
       'comments'
     );
     const q = query(commentsRef, orderBy('timestamp', 'asc'));
-
-    const unsubscribe = onSnapshot(
+    const unsub = onSnapshot(
       q,
       (snapshot) => {
-        const commentsList: Comment[] = [];
-        snapshot.forEach((d) => commentsList.push({ id: d.id, ...(d.data() as any) } as Comment));
-        setComments(commentsList);
+        const list: Comment[] = [];
+        snapshot.forEach((d) => list.push({ id: d.id, ...(d.data() as any) } as Comment));
+        setComments(list);
         setLoadingComments(false);
       },
-      (error) => {
-        console.error('Error fetching comments:', error);
-        setLoadingComments(false);
-      }
+      () => setLoadingComments(false)
     );
-
-    return () => unsubscribe();
+    return () => unsub();
   }, [activeCommentBox]);
 
-  // --- Handle Posting a New "Saga" ---
+  // --- Post actions ---
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPostContent.trim() || !currentUser || !userProfile) {
-      alert('You must be logged in and have a profile to post.');
-      return;
-    }
+    if (!newPostContent.trim() || !currentUser || !userProfile) return;
 
     const hashtags = newPostHashtags
       .split(' ')
-      .map((tag) => tag.replace(/#/g, '').trim())
+      .map((t) => t.replace(/#/g, '').trim())
       .filter(Boolean);
 
     const newPost = {
       authorId: currentUser.uid,
       authorName: userProfile.name,
-      authorUsername: userProfile.username || 'unknown',
-      authorProfilePic: userProfile.profilePicUrl || '',
+      authorUsername: userProfile.username,
+      authorProfilePic: userProfile.profilePicUrl,
       timestamp: serverTimestamp(),
       content: newPostContent.trim(),
       hashtags,
-      likedBy: [],
-      comments: []
+      likedBy: []
     };
 
-    try {
-      const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts');
-      await addDoc(postsRef, newPost);
-      setNewPostContent('');
-      setNewPostHashtags('');
-    } catch (error) {
-      console.error('Error adding post:', error);
-    }
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts'), newPost);
+    setNewPostContent('');
+    setNewPostHashtags('');
   };
 
-  // --- Handle Liking a Post ---
   const handleLikePost = async (postId: string) => {
     if (!currentUser) return;
-
     const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId);
     const post = posts.find((p) => p.id === postId);
+    if (!post) return;
 
-    if (post) {
-      const alreadyLiked = (post.likedBy || []).includes(currentUser.uid);
-      try {
-        if (alreadyLiked) {
-          await updateDoc(postRef, { likedBy: arrayRemove(currentUser.uid) });
-        } else {
-          await updateDoc(postRef, { likedBy: arrayUnion(currentUser.uid) });
-        }
-      } catch (error) {
-        console.error('Error liking post:', error);
-      }
-    }
+    const alreadyLiked = post.likedBy.includes(currentUser.uid);
+    await updateDoc(postRef, {
+      likedBy: alreadyLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
+    });
   };
 
-  // --- Handle Deleting a Post (only author) ---
   const handleDeletePost = async (postId: string) => {
     if (!currentUser) return;
     const post = posts.find((p) => p.id === postId);
-    if (!post) return;
-    if (post.authorId !== currentUser.uid) return;
-
-    const confirmed = confirm('Delete this post? This action cannot be undone.');
-    if (!confirmed) return;
-
-    try {
-      const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId);
-      await deleteDoc(postRef);
-    } catch (error) {
-      console.error('Error deleting post:', error);
-    }
+    if (!post || post.authorId !== currentUser.uid) return;
+    if (!confirm('Delete this post?')) return;
+    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId));
   };
 
-  // --- Handle Submitting a Comment (per-post input) ---
+  const startEditPost = (post: Post) => {
+    setEditingPostId(post.id);
+    setEditContent(post.content);
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditContent('');
+  };
+
+  const handleEditPost = async (postId: string) => {
+    if (!currentUser) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId), {
+      content: editContent
+    });
+    cancelEditPost();
+  };
+
+  // --- Comment actions ---
   const handleCommentSubmit = async (postId: string) => {
     const text = (newComments[postId] || '').trim();
     if (!text || !currentUser || !userProfile) return;
 
-    const newCommentObj = {
+    const newComment = {
       authorId: currentUser.uid,
       authorName: userProfile.name,
-      authorUsername: userProfile.username || 'unknown',
+      authorUsername: userProfile.username,
       text,
       timestamp: serverTimestamp()
     };
 
-    try {
-      const commentsRef = collection(
-        db,
-        'artifacts',
-        appId,
-        'public',
-        'data',
-        'wisdomHubPosts',
-        postId,
-        'comments'
-      );
-      await addDoc(commentsRef, newCommentObj);
-      setNewComments((prev) => ({ ...prev, [postId]: '' }));
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
+    await addDoc(
+      collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId, 'comments'),
+      newComment
+    );
+    setNewComments((prev) => ({ ...prev, [postId]: '' }));
+  };
+
+  const handleDeleteComment = async (postId: string, commentId: string, commentAuthorId: string) => {
+    if (!currentUser || currentUser.uid !== commentAuthorId) return;
+    await deleteDoc(
+      doc(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts', postId, 'comments', commentId)
+    );
   };
 
   const setCommentForPost = (postId: string, value: string) => {
     setNewComments((prev) => ({ ...prev, [postId]: value }));
   };
 
-  // --- Filter and Sort Posts ---
+  // --- Filter posts ---
   const filteredPosts = useMemo(() => {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-
-    if (!lowerSearchTerm) {
-      return posts;
-    }
-
+    const term = searchTerm.toLowerCase();
+    if (!term) return posts;
     return posts.filter((post) => {
-      const contentMatch = post.content.toLowerCase().includes(lowerSearchTerm);
-      const tagMatch = post.hashtags?.some((tag) => tag.toLowerCase().includes(lowerSearchTerm));
+      const contentMatch = post.content.toLowerCase().includes(term);
+      const tagMatch = post.hashtags?.some((t) => t.toLowerCase().includes(term));
       const authorMatch =
-        post.authorName.toLowerCase().includes(lowerSearchTerm) ||
-        post.authorUsername.toLowerCase().includes(lowerSearchTerm);
+        post.authorName.toLowerCase().includes(term) ||
+        post.authorUsername.toLowerCase().includes(term);
       return contentMatch || tagMatch || authorMatch;
     });
   }, [posts, searchTerm]);
 
-  const userCanPost = currentUser && userProfile;
+  const userCanPost = Boolean(currentUser && userProfile);
 
   return (
     <motion.div
@@ -334,26 +286,27 @@ export default function WisdomHubPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <style jsx>{spinSlow}</style>
-
+      {/* Particles (md+) */}
       <div className="pointer-events-none -z-20 absolute inset-0">
         <ParticlesWrapper hideOnMobile />
       </div>
 
       <div className="pt-safe pb-safe">
+        {/* Header */}
         <div className="text-center mb-8 relative">
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-400/6 via-indigo-400/6 to-amber-300/6 blur-2xl rounded-full animate-pulse"></div>
           <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-teal-300 to-amber-300">
             Jnana Hub 🦚
           </h1>
           <p className="mt-2 text-slate-300 italic text-sm sm:text-base">
-            {SLOGAN} — <span className="text-amber-200">ज्ञानं परमं बलम्</span>
+            {SLOGAN} — <span className="text-amber-200">ज्ञानं परम् बलम्</span>
           </p>
           <p className="mt-3 text-slate-400 max-w-xl mx-auto text-sm">
             The path they have walked before. Now, they come together for your guidance.
           </p>
         </div>
 
+        {/* New Post */}
         <PageCard className="mb-8">
           <form onSubmit={handlePostSubmit} className="relative">
             <div className="absolute inset-0 -z-10 bg-gradient-radial from-emerald-400/8 via-transparent to-transparent blur-2xl rounded-2xl"></div>
@@ -412,6 +365,7 @@ export default function WisdomHubPage() {
           </form>
         </PageCard>
 
+        {/* Search */}
         <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white">Community Chronicles</h2>
           <div className="w-full sm:w-72">
@@ -427,6 +381,7 @@ export default function WisdomHubPage() {
           </div>
         </div>
 
+        {/* Feed */}
         <div className="space-y-6">
           <AnimatePresence>
             {loadingPosts ? (
@@ -441,15 +396,12 @@ export default function WisdomHubPage() {
               >
                 <h3 className="text-lg sm:text-xl font-semibold text-white">The Hub is Empty</h3>
                 <p className="text-slate-400 mt-2">
-                  {searchTerm
-                    ? 'No wisdom matches your search.'
-                    : 'Be the first to share your wisdom and guide others!'}
+                  {searchTerm ? 'No wisdom matches your search.' : 'Be the first to share your wisdom and guide others!'}
                 </p>
               </motion.div>
             ) : (
               filteredPosts.map((post) => {
-                const userHasLiked =
-                  currentUser && (post.likedBy || []).includes(currentUser.uid);
+                const userHasLiked = currentUser && (post.likedBy || []).includes(currentUser.uid);
                 const isAuthor = currentUser && post.authorId === currentUser.uid;
 
                 return (
@@ -489,42 +441,69 @@ export default function WisdomHubPage() {
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-5">
-                      <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">{post.content}</p>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {post.hashtags?.map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={() => setSearchTerm(tag)}
-                            className="px-3 py-1 bg-amber-300/10 text-amber-200 text-xs rounded-full hover:backdrop-brightness-110"
-                          >
-                            #{tag}
-                          </button>
-                        ))}
+                    {/* Content or Edit form */}
+                    {editingPostId === post.id ? (
+                      <div className="p-5">
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleEditPost(post.id);
+                          }}
+                        >
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            rows={4}
+                            className="w-full p-3 bg-slate-900/60 border border-slate-800 rounded-md text-slate-200"
+                          />
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="submit"
+                              className="px-4 py-2 bg-amber-400 text-slate-900 rounded-md font-semibold"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditPost}
+                              className="px-4 py-2 bg-slate-700 text-slate-200 rounded-md"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-5">
+                        <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {post.hashtags?.map((tag) => (
+                            <button
+                              key={tag}
+                              onClick={() => setSearchTerm(tag)}
+                              className="px-3 py-1 bg-amber-300/10 text-amber-200 text-xs rounded-full hover:backdrop-brightness-110"
+                            >
+                              #{tag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Footer */}
+                    {/* Footer actions */}
                     <div className="p-4 border-t border-slate-800 bg-slate-900/30 flex items-center gap-4">
                       <motion.button
                         whileTap={{ scale: 1.15 }}
                         onClick={() => handleLikePost(post.id)}
-                        className={`flex items-center gap-2 like-btn ${
-                          userHasLiked ? 'text-red-500' : 'text-slate-300 hover:text-amber-300'
-                        }`}
+                        className={`flex items-center gap-2 like-btn ${userHasLiked ? 'text-red-500' : 'text-slate-300 hover:text-amber-300'}`}
                         disabled={!currentUser}
                       >
                         <Heart className="w-5 h-5" />
-                        <span className="text-sm font-medium">
-                          {(post.likedBy || []).length}
-                        </span>
+                        <span className="text-sm font-medium">{(post.likedBy || []).length}</span>
                       </motion.button>
 
                       <button
-                        onClick={() =>
-                          setActiveCommentBox(activeCommentBox === post.id ? null : post.id)
-                        }
+                        onClick={() => setActiveCommentBox(activeCommentBox === post.id ? null : post.id)}
                         className="flex items-center gap-2 text-slate-300 hover:text-amber-300"
                       >
                         <MessageSquare className="w-5 h-5" />
@@ -532,18 +511,28 @@ export default function WisdomHubPage() {
                       </button>
 
                       {isAuthor && (
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                          className="ml-2 inline-flex items-center gap-2 text-sm text-red-400 hover:text-red-500"
-                          title="Delete post"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
+                        <>
+                          <button
+                            onClick={() => startEditPost(post)}
+                            className="inline-flex items-center gap-2 text-sm text-amber-400 hover:text-amber-500"
+                            title="Edit post"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            className="inline-flex items-center gap-2 text-sm text-red-400 hover:text-red-500"
+                            title="Delete post"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </>
                       )}
 
                       <div className="ml-auto text-xs text-slate-400">
-                        {post.authorName !== userProfile?.name ? '' : 'Your post'}
+                        {isAuthor ? 'Your post' : ''}
                       </div>
                     </div>
 
@@ -557,6 +546,7 @@ export default function WisdomHubPage() {
                           className="bg-slate-900/20 p-4"
                         >
                           <div className="space-y-3">
+                            {/* Add comment */}
                             <form
                               onSubmit={(e) => {
                                 e.preventDefault();
@@ -580,6 +570,7 @@ export default function WisdomHubPage() {
                               </motion.button>
                             </form>
 
+                            {/* Comment list */}
                             {loadingComments ? (
                               <div className="flex items-center justify-center p-4">
                                 <Loader2 className="w-5 h-5 text-amber-300 animate-spin" />
@@ -596,8 +587,18 @@ export default function WisdomHubPage() {
                                     <div className="flex items-center justify-between">
                                       <div>
                                         <div className="text-sm font-semibold text-white">{c.authorName}</div>
-                                        <div className="text-xs text-slate-400">@{c.authorUsername} • {timeAgo(c.timestamp)}</div>
+                                        <div className="text-xs text-slate-400">
+                                          @{c.authorUsername} • {timeAgo(c.timestamp)}
+                                        </div>
                                       </div>
+                                      {currentUser?.uid === c.authorId && (
+                                        <button
+                                          onClick={() => handleDeleteComment(post.id, c.id, c.authorId)}
+                                          className="text-xs text-red-400 hover:text-red-500"
+                                        >
+                                          Delete
+                                        </button>
+                                      )}
                                     </div>
                                     <p className="text-sm text-slate-300 mt-2">{c.text}</p>
                                   </div>
@@ -616,6 +617,7 @@ export default function WisdomHubPage() {
         </div>
       </div>
 
+      {/* Styles */}
       <style jsx>{`
         .pt-safe { padding-top: env(safe-area-inset-top, 12px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
@@ -628,7 +630,7 @@ export default function WisdomHubPage() {
           box-shadow: 0 8px 30px rgba(234,179,8,0.12), 0 2px 8px rgba(99,102,241,0.06);
         }
 
-        /* stronger author link rules so hover glow shows clearly */
+        /* Author link: stronger golden hover glow */
         .author-link {
           display: inline-flex;
           align-items: center;
@@ -641,7 +643,6 @@ export default function WisdomHubPage() {
           -webkit-tap-highlight-color: transparent;
         }
 
-        /* make image participate in the glow */
         .author-link img {
           width: 40px;
           height: 40px;
@@ -650,7 +651,6 @@ export default function WisdomHubPage() {
           will-change: transform, box-shadow;
         }
 
-        /* golden glow on hover/focus */
         .author-link:hover,
         .author-link:focus-visible {
           transform: translateY(-2px);
