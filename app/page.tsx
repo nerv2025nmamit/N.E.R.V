@@ -424,7 +424,9 @@ export default function Home() {
       {/* Makers Section */}
       <section id="team" className="relative z-10 py-32 bg-slate-900/50 border-t border-slate-800/50">
         <div className="max-w-6xl mx-auto px-6">
-          <SectionHeading>The Architects</SectionHeading>
+          <SectionHeading>The Architects:
+                          Team N.E.R.V
+          </SectionHeading>
           <div className="grid md:grid-cols-3 gap-8 justify-center">
             {makers.map((maker, index) => (
               <MakerCard key={index} maker={maker} index={index} />

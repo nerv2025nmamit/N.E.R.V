@@ -35,7 +35,6 @@ function useMediaQuery(query: string) {
 const navItems = [
   { href: '/portal', icon: Home, label: 'Home' },
   { href: '/portal/stroll', icon: Compass, label: 'Stroll' },
-  { href: '/portal/opportunities', icon: Globe, label: 'Opportunities' },
   { href: '/portal/wisdom-hub', icon: MessageSquare, label: 'Jnana Hub' },
   { href: '/portal/messages', icon: Inbox, label: 'Inbox' },
   { href: '/portal/chatbot', icon: Bot, label: 'Drona AI' },
