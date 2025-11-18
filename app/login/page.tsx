@@ -10,7 +10,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfi
 import { doc, setDoc } from 'firebase/firestore';
 
 /**
- * A decorative corner element to give the form an epic, ornamental feel.
+ * theme
  */
 const CornerOrnament = ({ className }: { className: string }) => (
   <svg
@@ -26,14 +26,14 @@ const CornerOrnament = ({ className }: { className: string }) => (
   </svg>
 );
 
-// Simple email validator
+// for email
 const isValidEmail = (value: string) => {
   const email = value.trim();
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
 };
 
-// Map firebase error codes to user-friendly messages
+// to check erro
 const mapAuthError = (code?: string, message?: string) => {
   switch (code) {
     case 'auth/invalid-email':
@@ -65,7 +65,7 @@ export default function LoginPage() {
   const [embers, setEmbers] = useState<Ember[] | null>(null);
   const router = useRouter();
 
-  // Generate embers on client only to avoid hydration mismatch
+  // on mismatch
   useEffect(() => {
     const generated: Ember[] = Array.from({ length: 20 }).map(() => ({
       left: `${(Math.random() * 100).toFixed(6)}%`,
@@ -164,7 +164,7 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex items-center justify-center min-h-screen w-full bg-slate-950 text-slate-200 overflow-hidden">
-      {/* Animated Golden Embers Background (client-only generation) */}
+      {/*background) */}
       <div className="absolute inset-0 w-full h-full z-0" aria-hidden>
         {embers
           ? embers.map((e, i) => (
@@ -189,7 +189,7 @@ export default function LoginPage() {
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-md p-8 sm:p-12 bg-slate-950/80 backdrop-blur-md rounded-2xl border border-amber-500/20 shadow-2xl shadow-amber-500/10"
       >
-        {/* Ornamental Corners */}
+        {/* theme corner */}
         <CornerOrnament className="top-4 left-4" />
         <CornerOrnament className="top-4 right-4 rotate-90" />
         <CornerOrnament className="bottom-4 left-4 -rotate-90" />
@@ -210,7 +210,7 @@ export default function LoginPage() {
           <p className="text-slate-400 mt-2">Your journey awaits. Enter the portal.</p>
         </div>
 
-        {/* --- INSTRUCTION BOX --- */}
+        {/* help box */}
         <div className="my-6 p-4 bg-slate-800/60 border border-amber-500/20 rounded-lg text-sm text-slate-300 leading-relaxed">
           <p>
             <strong className="text-amber-400">Students:</strong> Please log in with your{' '}
@@ -221,7 +221,7 @@ export default function LoginPage() {
             personal Gmail.
           </p>
         </div>
-        {/* --- END INSTRUCTION BOX --- */}
+        {/* --- end help box*/}
 
         {/* Input Fields */}
         <div className="space-y-5">
@@ -259,7 +259,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Password Hint */}
+        {/* Password info */}
         <div className="mt-4 text-center">
           <p className="text-xs text-amber-500/70">
             For first-time users, create an account. Passwords are managed securely by Firebase.
@@ -305,7 +305,7 @@ export default function LoginPage() {
         </div>
       </motion.form>
 
-      {/* CSS for the floating embers animation */}
+      {/*styling*/}
       <style jsx>{`
         .golden-ember {
           position: absolute;
