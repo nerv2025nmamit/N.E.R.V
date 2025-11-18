@@ -6,7 +6,7 @@ import { User, Save, Image as ImageIcon, Briefcase, Plus, X, Hash, Book, Calenda
 import { db, appId, ensureUserIsSignedIn } from '../../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-// --- Types (unchanged) ---
+// --- Types ) ---
 type UserProfile = {
   profilePicUrl: string;
   bio: string;
@@ -21,7 +21,7 @@ type UserProfile = {
   username: string;
 };
 
-// --- Floating bubbles (subtle, safe) ---
+// --- Floating bubbles  ---
 const FloatingBubbles = () => {
   const bubbles = Array.from({ length: 14 }, (_, i) => i);
   return (
@@ -73,7 +73,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // --- Data Loading (unchanged logic, fixed path formatting preserved) ---
+  // --- Data Loading  ---
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -118,7 +118,7 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // --- Handle input changes (unchanged) ---
+  // --- Handle input ---
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -126,7 +126,7 @@ export default function ProfilePage() {
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  // --- Add/Remove company (unchanged) ---
+  // --- Add/Remove company ---
   const handleAddCompany = () => {
     if (newCompany.trim()) {
       setProfile((prev) => ({
@@ -144,7 +144,7 @@ export default function ProfilePage() {
     }));
   };
 
-  // --- Save profile (unchanged, path fix preserved) ---
+  // --- Save profile  ---
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) {
@@ -174,7 +174,7 @@ export default function ProfilePage() {
     }
   };
 
-  // --- Render Logic (unchanged structure) ---
+  // --- Render  ---
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -241,7 +241,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Main Details Grid */}
+        {/* Main Details  */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Username */}
           <div>
