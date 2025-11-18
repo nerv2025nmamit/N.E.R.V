@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- Type Definitions ---
+//Type Definitions 
 interface PortalCardProps {
   title: string;
   icon: ReactNode;
@@ -44,7 +44,7 @@ interface MakerCardProps {
   index: number;
 }
 
-// --- Utility Components ---
+//  Components
 const SectionHeading = ({
   children,
   subtitle,
@@ -87,7 +87,7 @@ const SectionHeading = ({
   );
 };
 
-// --- Makers ---
+// --- our info 
 const makers: Maker[] = [
   {
     name: 'SUCHAYA',
@@ -127,13 +127,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-amber-500/30">
-      {/* Decorative Background */}
+      {/* bg*/}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/20 rounded-full blur-[120px] opacity-50"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-900/20 rounded-full blur-[120px] opacity-40"></div>
       </div>
 
-      {/* Navigation */}
+      {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <motion.div
@@ -141,7 +141,7 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center space-x-3"
           >
-            {/* Logo image from public folder */}
+            {/* Logo image */}
             <img
               src="/image.jpg"
               alt="Lakshya logo"
@@ -172,7 +172,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* info  */}
       <section className="relative z-10 min-h-screen flex items-center justify-center overflow-hidden pt-20">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center w-full">
           <motion.div
@@ -213,9 +213,9 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Animated Bow & Target Graphic — Arrow shoots to the RIGHT */}
+          {/* bow n arrow */}
           <div className="relative h-[500px] flex items-center justify-center">
-            {/* Target on the RIGHT side */}
+            
             <motion.div
               initial={{ scale: 0.8, opacity: 0, x: 80 }}
               animate={{ scale: 1, opacity: 1, x: 120 }}
@@ -239,7 +239,7 @@ export default function Home() {
               </svg>
             </motion.div>
 
-            {/* Bow on the LEFT, concave towards right */}
+           
             <motion.div
               initial={{ x: -140, opacity: 0 }}
               animate={{ x: -50, opacity: 2}}
@@ -252,9 +252,9 @@ export default function Home() {
                 fill="none"
                 strokeWidth="2"
               >
-                {/* Bow limb curve opening towards the right */}
+               
                 <path d="M 10 10 C 80 50, 80 150, 10 190" strokeLinecap="round" />
-                {/* Bow string on the left side */}
+
                 <motion.line
                   x1="10"
                   y1="10"
@@ -269,7 +269,7 @@ export default function Home() {
               </svg>
             </motion.div>
 
-            {/* Arrow starting near the bow, flying RIGHT towards the target */}
+            {/* Arrow startin*/}
             <motion.div
               initial={{ x: -160, opacity: 0 }}
               animate={
@@ -286,12 +286,12 @@ export default function Home() {
               style={{ marginTop: '-1px', marginLeft: '-50px' }}
             >
               <div className="w-[220px] h-[2px] bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 relative">
-                {/* Arrow head pointing RIGHT */}
+               
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[12px] border-l-amber-500"></div>
               </div>
             </motion.div>
 
-            {/* Hit Effect near the RIGHT target */}
+            {/* Hit  target */}
             <AnimatePresence>
               {arrowShot && (
                 <motion.div
@@ -447,7 +447,7 @@ export default function Home() {
   );
 }
 
-// --- Sub-Components ---
+// --- Sub
 const PortalCard: React.FC<PortalCardProps> = ({
   title,
   icon,
