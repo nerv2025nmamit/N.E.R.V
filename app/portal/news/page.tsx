@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { RefreshCw, AlertTriangle, Send, Star } from 'lucide-react';
 
-// --- Types ---
+// --- Types(for news interface)
 interface NewsItem {
   title: string;
   description: string;
@@ -14,7 +14,7 @@ interface NewsItem {
   image?: string;
 }
 
-// --- Ancient Scroll Icon Component ---
+// --- added  theme matching scroll effect
 const AncientScrollIcon = () => (
   <svg
     width="64"
@@ -51,7 +51,7 @@ const AncientScrollIcon = () => (
   </svg>
 );
 
-// --- Animation Variants ---
+// --- Animation Variants (for the news card)
 const gridContainerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
@@ -69,7 +69,7 @@ export default function TechNews() {
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  // --- data fetchers (same as before) ---
+  // --- data  ---
   const fetchTechNews = async (isManualRefresh = false) => {
     if (isManualRefresh) setIsRefreshing(true);
     else setLoading(true);
@@ -107,7 +107,7 @@ export default function TechNews() {
     }
   };
 
-  // --- API helpers (kept as-is, keep your keys) ---
+  // --- API 
   const fetchNewsAPI = async (): Promise<NewsItem[]> => {
     try {
       const response = await fetch(
@@ -209,7 +209,7 @@ export default function TechNews() {
         publishedAt: currentDate,
         image: 'https://placehold.co/600x400/1e293b/eab308?text=AI+News',
       },
-      // add more sample articles if needed
+      
     ];
   };
 
@@ -286,7 +286,7 @@ export default function TechNews() {
         )}
       </AnimatePresence>
 
-      {/* Featured Article (stack on mobile) */}
+      {/* Featured Article */}
       {featuredArticle && (
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="group relative mb-8 flex flex-col md:flex-row bg-slate-900/50 border border-amber-500/20 rounded-2xl shadow-md overflow-hidden">
           {featuredArticle.image && (
@@ -315,7 +315,7 @@ export default function TechNews() {
         </motion.div>
       )}
 
-      {/* Staggered Grid (mobile-first) */}
+      {/* Staggered Grid */}
       <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" variants={gridContainerVariants} initial="hidden" animate="visible">
         {sortedRegularArticles.map((item, idx) => (
           <motion.div key={`${item.url}-${idx}`} variants={gridItemVariants} className="group flex flex-col bg-slate-900/50 border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
