@@ -152,3 +152,5 @@ def chat_api(request: QueryRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+        
