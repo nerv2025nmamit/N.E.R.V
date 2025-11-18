@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// --- Firebase Config ---
+//  Config
 const firebaseConfig = {
   apiKey: "AIzaSyBuWpWEQQiT7pXJznxEkMFns0npDlmjaIw",
   authDomain: "lakshya-platform.firebaseapp.com",
@@ -26,10 +26,10 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// --- App ID for Firestore paths (if needed) ---
+// --- App ID  ---
 const appId = 'default-app-id';
 
-// --- Optional: attempt anonymous sign-in (only when explicitly requested) ---
+
 export async function signInAnonymouslyIfNeeded(): Promise<void> {
   if (!auth.currentUser) {
     try {
@@ -42,11 +42,7 @@ export async function signInAnonymouslyIfNeeded(): Promise<void> {
   }
 }
 
-/**
- * Wait for a signed-in user. Does NOT auto-create an anonymous user.
- * If anonymous fallback is desired, call signInAnonymouslyIfNeeded() first.
- * @param timeoutMs optional timeout in milliseconds (default 10000)
- */
+
 export async function ensureUserIsSignedIn(timeoutMs = 10000): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
 
@@ -96,7 +92,7 @@ export async function ensureUserIsSignedIn(timeoutMs = 10000): Promise<User> {
   });
 }
 
-// --- Optional Debug Helper ---
+//  Debug Helper ---
 export function debugAuth(): void {
   if (auth.currentUser) {
     console.log('🔍 Auth UID:', auth.currentUser.uid);
