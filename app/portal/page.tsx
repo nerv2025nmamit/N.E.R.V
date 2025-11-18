@@ -57,7 +57,7 @@ export default function PortalPage() {
       transition={{ duration: 0.45 }}
       className="w-full min-h-screen relative overflow-visible bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
     >
-      {/* Particles: hidden on small screens to avoid overlays */}
+      {/* Particles */}
       <div className="hidden sm:block pointer-events-none">
         <FlameWisps />
         <GoldenBubbles />
@@ -93,7 +93,7 @@ export default function PortalPage() {
                    bg-slate-900/75 backdrop-blur-md shadow-2xl overflow-visible"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {/* Decorative particles hidden on mobile */}
+        {/* style particlese */}
         <div className="hidden sm:block pointer-events-none">
           <FlameWisps />
           <GoldenBubbles />
