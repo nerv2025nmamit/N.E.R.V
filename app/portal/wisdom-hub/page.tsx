@@ -32,7 +32,7 @@ import {
 import { ParticlesWrapper } from '../../../components/ParticlesWrapper';
 import { PageCard } from '../../../components/PageCard';
 
-// --- Types ---
+// --- Types
 type Comment = {
   id: string;
   authorId: string;
@@ -62,7 +62,7 @@ type UserProfile = {
 
 const SLOGAN = 'ज्ञानं परमं बलम्';
 
-// --- Helpers ---
+// --- Helpers 
 const timeAgo = (timestamp: any): string => {
   if (!timestamp) return 'just now';
   const date = timestamp.toDate();
@@ -100,7 +100,7 @@ export default function WisdomHubPage() {
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
 
-  // --- Load current user profile ---
+  // --- Load current user profile 
   useEffect(() => {
     const setupUser = async () => {
       const user = await ensureUserIsSignedIn();
@@ -119,7 +119,7 @@ export default function WisdomHubPage() {
     setupUser();
   }, []);
 
-  // --- Real-time posts ---
+  // --- Real-time posts 
   useEffect(() => {
     setLoadingPosts(true);
     const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'wisdomHubPosts');
@@ -137,7 +137,7 @@ export default function WisdomHubPage() {
     return () => unsub();
   }, []);
 
-  // --- Real-time comments for active post ---
+  // --- Real-time comments for active post 
   useEffect(() => {
     if (!activeCommentBox) {
       setComments([]);
@@ -263,7 +263,7 @@ export default function WisdomHubPage() {
     setNewComments((prev) => ({ ...prev, [postId]: value }));
   };
 
-  // --- Filter posts ---
+  // --- Filter posts 
   const filteredPosts = useMemo(() => {
     const term = searchTerm.toLowerCase();
     if (!term) return posts;
@@ -286,7 +286,7 @@ export default function WisdomHubPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Particles (md+) */}
+      {/* Particles  */}
       <div className="pointer-events-none -z-20 absolute inset-0">
         <ParticlesWrapper hideOnMobile />
       </div>
