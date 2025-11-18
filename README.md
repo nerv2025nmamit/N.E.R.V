@@ -39,3 +39,4 @@ This frontend acts as the main user interface of the entire LAKSHYA ecosystem an
 .TypeScript – type safety & cleaner code
 
 .Vercel – optimized production deployment
+
