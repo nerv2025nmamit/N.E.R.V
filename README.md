@@ -3,6 +3,7 @@ Drona AI is a RAG Chatbot built using FastAPI, Gemini-2.5-flash, and ChromaDb fo
 
 
 Our repository is organized into two parts: the main branch contains the backend logic powering DRONA, and the master branch includes the complete frontend for the portal. Reviewing both will give a full picture of how the system works end-to-end.
+<<<<<<< HEAD
 =======
 This repository contains the frontend of LAKSHYA, a student–alumni mentorship and opportunity platform built using Next.js, styled with Tailwind CSS, and powered by Firebase for real-time data storage and secure authentication.
 
@@ -40,3 +41,7 @@ Tech Stack
 
 
 >>>>>>> master
+=======
+
+**Codes related to frontend and backend is present in master branch, please do checkout that too!**
+>>>>>>> e68cd01a882721b78f18857600067e49881a0249
