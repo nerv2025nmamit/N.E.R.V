@@ -40,7 +40,7 @@ const ProfileCard = ({ profile, delay }: { profile: UserProfile; delay: number }
       transition={{ duration: 0.45, delay }}
       className="group relative flex flex-col bg-gradient-to-br from-indigo-900/70 via-slate-900/60 to-slate-950/70 border border-indigo-700 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:border-emerald-400/50 hover:shadow-emerald-400/20 hover:-translate-y-1.5"
     >
-      {/* lightweight aura on md+, hidden on small to save perf */}
+      {/* bg effect */}
       <div
         className="absolute inset-0 -z-10 blur-2xl hidden md:block"
         style={{
@@ -113,7 +113,7 @@ const ProfileCard = ({ profile, delay }: { profile: UserProfile; delay: number }
   );
 };
 
-// --- Main Stroll Page ---
+//Main Stroll Page 
 export default function StrollPage() {
   const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,12 +183,12 @@ export default function StrollPage() {
       transition={{ duration: 0.45 }}
       className="w-full max-w-7xl mx-auto px-4 sm:px-6 relative"
     >
-      {/* Particles on md+ only */}
+      {/* Particles */}
       <div className="pointer-events-none -z-20 absolute inset-0">
         <ParticlesWrapper hideOnMobile />
       </div>
 
-      {/* Safe-area top padding */}
+      
       <div className="pt-safe pb-safe">
         {/* Header */}
         <div className="mb-4">
@@ -214,7 +214,7 @@ export default function StrollPage() {
           </div>
         </div>
 
-        {/* Profiles Grid (mobile-first) */}
+        {/* Profiles Grid */}
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
