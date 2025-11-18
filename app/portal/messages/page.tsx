@@ -68,7 +68,7 @@ export default function MessagesPage() {
             snapshot.forEach((doc) => {
               const data = doc.data() as DocumentData;
 
-              // ✅ Validate participants array
+              // parti array
               if (!data.participants || !Array.isArray(data.participants)) {
                 console.warn(`Chat ${doc.id} missing participants array`);
                 return;
