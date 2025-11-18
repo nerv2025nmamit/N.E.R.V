@@ -54,7 +54,7 @@ export default function PrivateChatPage() {
         const senderId = currentUser.uid;
         setCurrentUserId(senderId);
 
-        // ✅ FIXED: Correct Firestore path
+        // firestore path this is for my understanding(in data artifacts then public in it click on chats to get the id)
         const chatDocRef = doc(
           db,
           "artifacts",
@@ -74,12 +74,12 @@ export default function PrivateChatPage() {
           { merge: true }
         );
 
-        // Get participant IDs
+        // get id
         const chatParticipants = chatId.split('_');
         const recipientId = chatParticipants.find((id) => id !== senderId);
         if (!recipientId) throw new Error('Invalid chat participants.');
 
-        // ✅ FIXED: Correct recipient profile path
+        // path of prof
         const recipientDocRef = doc(
           db,
           "artifacts",
@@ -110,7 +110,7 @@ export default function PrivateChatPage() {
           });
         }
 
-        // ✅ FIXED: Correct messages collection path
+        // collecting
         const messagesRef = collection(
           db,
           "artifacts",
@@ -170,7 +170,7 @@ export default function PrivateChatPage() {
     const trimmedMessage = newMessage.trim();
 
     try {
-      // ✅ FIXED: Correct messages collection path
+      // collection path
       const messagesRef = collection(
         db,
         "artifacts",
@@ -188,7 +188,7 @@ export default function PrivateChatPage() {
         timestamp: serverTimestamp(),
       });
 
-      // Update chat document
+      // cht doc
       const chatDocRef = doc(
         db,
         "artifacts",
